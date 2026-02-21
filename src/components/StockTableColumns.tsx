@@ -5,12 +5,14 @@ import { ArrowUpDown } from "lucide-react";
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
-import { Stock } from "@/types/stock";
+import { StockWithTotalScore } from "@/types/stock";
 import { Badge } from "@/components/ui/badge";
 
 // TODO: カラム幅を固定したい
 
-export const columns: ColumnDef<Stock>[] = [
+// TODO: 画面サイズに応じて表示する項目を変更
+
+export const columns: ColumnDef<StockWithTotalScore>[] = [
   {
     accessorKey: "code",
     header: ({ column }) => {
@@ -56,6 +58,7 @@ export const columns: ColumnDef<Stock>[] = [
     },
   },
   {
+    // RODO: market と industry の順番を逆にする
     accessorKey: "market",
     header: "市場",
     cell: ({ row }) => {
@@ -137,10 +140,10 @@ export const columns: ColumnDef<Stock>[] = [
       );
     },
     cell: ({ row }) => {
-      const score = row.original.score?.total;
+      const score = row.original.totalScore;
       if (score === undefined) return <div className="text-center px-4">-</div>;
       return <div className="text-center font-black text-lg px-4">{score}</div>;
     },
-    accessorFn: (row) => row.score?.total,
+    accessorFn: (row) => row.totalScore,
   },
 ];

@@ -23,10 +23,10 @@ export type Database = {
           earnings_per_share: number | null
           equity_ratio: number | null
           id: string
+          month: number
           operating_cash_flow: number | null
           operating_profit_margin: number | null
           payout_ratio: number | null
-          month: number
           sales: number | null
           year: number
         }
@@ -38,10 +38,10 @@ export type Database = {
           earnings_per_share?: number | null
           equity_ratio?: number | null
           id?: string
+          month: number
           operating_cash_flow?: number | null
           operating_profit_margin?: number | null
           payout_ratio?: number | null
-          month: number
           sales?: number | null
           year: number
         }
@@ -53,10 +53,10 @@ export type Database = {
           earnings_per_share?: number | null
           equity_ratio?: number | null
           id?: string
+          month?: number
           operating_cash_flow?: number | null
           operating_profit_margin?: number | null
           payout_ratio?: number | null
-          month?: number
           sales?: number | null
           year?: number
         }
@@ -66,6 +66,13 @@ export type Database = {
             columns: ["code"]
             isOneToOne: false
             referencedRelation: "stocks"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "financial_history_code_fkey"
+            columns: ["code"]
+            isOneToOne: false
+            referencedRelation: "stocks_with_total_score"
             referencedColumns: ["code"]
           },
         ]
@@ -118,6 +125,13 @@ export type Database = {
             referencedRelation: "stocks"
             referencedColumns: ["code"]
           },
+          {
+            foreignKeyName: "scores_code_fkey"
+            columns: ["code"]
+            isOneToOne: true
+            referencedRelation: "stocks_with_total_score"
+            referencedColumns: ["code"]
+          },
         ]
       }
       stocks: {
@@ -155,7 +169,20 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      stocks_with_total_score: {
+        Row: {
+          code: string | null
+          created_at: string | null
+          dividend_yield: number | null
+          industry: string | null
+          market: string | null
+          name: string | null
+          price: number | null
+          total_score: number | null
+          updated_at: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       [_ in never]: never

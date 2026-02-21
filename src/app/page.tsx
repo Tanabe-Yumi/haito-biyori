@@ -1,4 +1,4 @@
-import { getStocks } from "@/lib/api";
+import { getStocksWithTotalScore } from "@/lib/api";
 import { StockDashboard } from "@/components/StockDashboard";
 import { DataNotFoundArea } from "@/components/layout/DataNotFoundArea";
 
@@ -21,8 +21,14 @@ const Home = async ({
   const pageSize = 20;
   const currentPage = parseInt(params.page || "0");
 
-  const result = await getStocks(minYield, currentPage, pageSize);
-  const { stocks, total } = result;
+  const { stocks, totalCount } = await getStocksWithTotalScore(
+    minYield,
+    currentPage,
+    pageSize,
+  ).catch((e) => {
+    console.error(e);
+    return { stocks: [], totalCount: 0 };
+  });
 
   return (
     <div className="space-y-8">
@@ -36,11 +42,12 @@ const Home = async ({
       </section>
 
       {stocks.length === 0 ? (
+        // TODO: 表の中に「データがありません」表示をする
         <DataNotFoundArea />
       ) : (
         <StockDashboard
           stocks={stocks}
-          total={total}
+          total={totalCount}
           currentPage={currentPage}
           pageSize={pageSize}
         />

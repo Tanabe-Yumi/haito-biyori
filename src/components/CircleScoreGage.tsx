@@ -1,12 +1,19 @@
 interface CircleScoreGageProps {
-  score: number;
+  score: number | null;
   maxScore: number;
 }
+
+// CircleScoreGage
+// - 円形のプログレスバーで点数を表示
+//   - 0時から時計回り
+// - score: null の場合
+//   - 点数は表示されない
+//   - プログレスバーは 0%
 
 export const CircleScoreGage = ({ score, maxScore }: CircleScoreGageProps) => {
   const r = 70;
   const stroke = 2 * Math.PI * r;
-  const strokeOffset = stroke * ((40 - score) / 40);
+  const strokeOffset = score ? stroke * ((40 - score) / 40) : stroke;
 
   return (
     <div className="relative flex items-center justify-center">

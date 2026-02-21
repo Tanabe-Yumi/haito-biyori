@@ -1,6 +1,6 @@
 "use client";
 
-import { Stock } from "@/types/stock";
+import { StockWithTotalScore } from "@/types/stock";
 import { DataTable } from "@/components/DataTable";
 import { columns } from "@/components/StockTableColumns";
 import { DividendFilter } from "@/components/DividendFilter";
@@ -8,7 +8,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useTransition } from "react";
 
 interface StockDashboardProps {
-  stocks: Stock[];
+  stocks: StockWithTotalScore[];
   total: number;
   currentPage: number;
   pageSize: number;

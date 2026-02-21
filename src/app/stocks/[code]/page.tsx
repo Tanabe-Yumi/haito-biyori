@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { getStockByCode, getFinancialHistory } from "@/lib/api";
+import { getStockWithScoresById, getFinancialHistoryByCode } from "@/lib/api";
 import { HistoricalChart } from "@/components/HistoricalChart";
 import { CircleScoreGage } from "@/components/CircleScoreGage";
 import { HoverInfoCard } from "@/components/HoverInfoCard";
@@ -29,8 +29,13 @@ const StockDetailPage = async ({
 }) => {
   const { code } = await params;
   // TODO: getStockByCode() の戻り値を精査
-  const stock = await getStockByCode(code);
-  const history = await getFinancialHistory(code);
+  const stock = await getStockWithScoresById(code).catch((e) =>
+    console.error(e),
+  );
+  const history = await getFinancialHistoryByCode(code).catch((e) =>
+    console.error(e),
+  );
+  // console.log(history);
 
   if (!stock) {
     notFound();
@@ -101,6 +106,7 @@ const StockDetailPage = async ({
 
   return (
     <div className="max-w-4xl mx-auto p-4 pt-0 md:p-8 md:pt-0 space-y-6">
+      {/* TODO: ページやフィルターも前のを引き継いだ状態で戻る */}
       <Link
         href="/"
         className="inline-flex items-center text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
@@ -125,21 +131,24 @@ const StockDetailPage = async ({
           </div>
           <div className="flex gap-3">
             <h2 className="text-3xl font-bold">{stock.name}</h2>
+            {/* TODO: 企業公式サイトへのリンク */}
           </div>
         </div>
 
         <div className="flex items-center gap-6">
           <div className="text-left">
             <p className="text-sm text-muted-foreground font-medium">現在値</p>
-            <p className="text-2xl font-bold text-gray-900">¥{stock.price}</p>
+            <p className="text-2xl font-bold text-right text-gray-900">
+              ¥{stock.price ?? " -"}
+            </p>
           </div>
           <Separator orientation="vertical" />
           <div className="text-left">
             <p className="text-sm text-muted-foreground font-medium">
               配当利回り
             </p>
-            <p className="text-2xl font-bold text-emerald-700">
-              {stock.dividendYield}%
+            <p className="text-2xl font-bold text-right text-emerald-700">
+              {stock.dividendYield ?? "- "}%
             </p>
           </div>
         </div>
@@ -154,7 +163,7 @@ const StockDetailPage = async ({
           <h3 className="text-lg font-bold mb-4 text-white uppercase tracking-widest">
             総合スコア
           </h3>
-          <CircleScoreGage score={stock.score?.total ?? 0} maxScore={40} />
+          <CircleScoreGage score={stock.score?.total ?? null} maxScore={40} />
         </div>
 
         {/* 右側: 項目ごとのスコア */}
@@ -183,7 +192,7 @@ const StockDetailPage = async ({
                     />
                   </span>
                   <span className="font-bold text-neutral-800">
-                    {item.score} / 5
+                    {item.score ?? "-"} / 5
                   </span>
                 </div>
                 <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
@@ -206,8 +215,16 @@ const StockDetailPage = async ({
           <ChartNoAxesCombinedIcon className="text-emerald-600 w-5 h-5" />
           業績推移
         </h3>
-        <HistoricalChart history={history} />
+        {!!history?.length ? (
+          <HistoricalChart history={history} />
+        ) : (
+          <p className="text-center text-muted-foreground">
+            データがありません
+          </p>
+        )}
       </div>
+
+      {/* TODO: 最終更新日を追加(stocksテーブル) */}
 
       {/* TODO: フッター */}
     </div>
