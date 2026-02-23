@@ -9,7 +9,6 @@ import {
   // VisibilityState,
 } from "@tanstack/react-table";
 
-import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -19,24 +18,30 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import SearchBox from "@/components/SearchBox";
+import PaginationControll from "@/components/PaginationControll";
+import RowsSelector from "@/components/RowsSelector";
+import { useSearchParam } from "@/hooks/use-search-params";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
-  currentPage?: number;
-  totalPages?: number;
-  onPageChange?: (page: number) => void;
+  total: number;
   isLoading: boolean;
 }
 
 export function DataTable<TData, TValue>({
   columns,
   data,
-  currentPage = 0,
-  totalPages = 1,
-  onPageChange,
+  total,
   isLoading,
 }: DataTableProps<TData, TValue>) {
+  const [page] = useSearchParam("page");
+  const [rows] = useSearchParam("rows");
+  const currentPage = parseInt(page) - 1 || 0;
+  const currentRows = parseInt(rows) || 10;
+  const from = currentPage * currentRows + 1;
+  const to = from + data.length - 1;
+
   // 表示カラム変更
   // const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
 
@@ -45,18 +50,12 @@ export function DataTable<TData, TValue>({
     columns,
     getCoreRowModel: getCoreRowModel(),
     // ページネーション (手動モード)
-    manualPagination: onPageChange !== undefined,
-    pageCount: totalPages,
+    manualPagination: true,
     // 表示カラム変更
     // onColumnVisibilityChange: setColumnVisibility,
     state: {
       // 表示カラム変更
       // rowSelection,
-      // ページネーション (手動モード)
-      pagination: {
-        pageIndex: currentPage,
-        pageSize: data.length,
-      },
     },
   });
 
@@ -66,7 +65,8 @@ export function DataTable<TData, TValue>({
         {/* 検索窓 */}
         <SearchBox isLoading={isLoading} />
 
-        {/* TODO: 表示する行数選択のドロップダウンを追加 */}
+        {/* 表示行数セレクター */}
+        <RowsSelector />
       </div>
 
       {/* テーブル */}
@@ -130,56 +130,14 @@ export function DataTable<TData, TValue>({
         </Table>
       </div>
 
-      {/* ページネーション */}
-      <div className="flex items-center justify-end space-x-2 py-4">
+      <div className="flex items-center justify-between space-x-2">
+        {/* 表示範囲 */}
         <div className="text-muted-foreground text-sm">
-          {onPageChange ? (
-            <>
-              ページ {currentPage + 1} / {totalPages}
-            </>
-          ) : (
-            <>
-              {table.getFilteredRowModel().rows.length} 件中{" "}
-              {table.getFilteredSelectedRowModel().rows.length} を選択中
-            </>
-          )}
+          {`${from} 〜 ${to} / ${total} 件`}
         </div>
-        <div className="space-x-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              if (onPageChange) {
-                onPageChange(currentPage - 1);
-              } else {
-                table.previousPage();
-              }
-            }}
-            disabled={
-              onPageChange ? currentPage === 0 : !table.getCanPreviousPage()
-            }
-          >
-            前へ
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              if (onPageChange) {
-                onPageChange(currentPage + 1);
-              } else {
-                table.nextPage();
-              }
-            }}
-            disabled={
-              onPageChange
-                ? currentPage >= totalPages - 1
-                : !table.getCanNextPage()
-            }
-          >
-            次へ
-          </Button>
-        </div>
+
+        {/* ページネーション */}
+        <PaginationControll total={total} />
       </div>
     </div>
   );

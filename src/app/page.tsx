@@ -7,8 +7,6 @@ import { StockWithTotalScore } from "@/types/stock";
 
 const Home = () => {
   const endpoint = "/api/stocks";
-  const pageSize = 20;
-  const currentPage = 0;
 
   // TODO: フィルタ変更時も isLoading を対応させる
   const [isLoading, setIsLoading] = useState(true);
@@ -46,8 +44,6 @@ const Home = () => {
       <StockDashboard
         stocks={stocks}
         total={totalCount}
-        currentPage={currentPage}
-        pageSize={pageSize}
         isLoading={isLoading}
       />
     </div>

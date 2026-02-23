@@ -10,16 +10,17 @@ export async function GET(request: NextRequest) {
   const industryParam = searchParams.get("industry");
   const minYieldParam = searchParams.get("yield");
   const minScoreParam = searchParams.get("score");
+  const pageParam = searchParams.get("page");
+  const rowsParam = searchParams.get("rows");
 
   // 引数用の変数準備
   const markets = marketParam ? marketParam.split(",") : null;
   const industries = industryParam ? industryParam.split(",") : null;
   const minYield = minYieldParam ? parseFloat(minYieldParam) : null;
   const minScore = minScoreParam ? parseFloat(minScoreParam) : null;
-
-  // ページネーション
-  const page = parseInt(searchParams.get("page") || "0");
-  const pageSize = parseInt(searchParams.get("pageSize") || "20");
+  // 0 基準のページ番号に直す
+  const page = pageParam ? parseInt(pageParam) - 1 : null;
+  const rows = rowsParam ? parseInt(rowsParam) : null;
 
   const result = await getStocksWithTotalScore(
     searchParam,
@@ -27,8 +28,8 @@ export async function GET(request: NextRequest) {
     industries,
     minYield,
     minScore,
-    page,
-    pageSize,
+    page ?? undefined,
+    rows ?? undefined,
   );
 
   return NextResponse.json(result);

@@ -29,7 +29,7 @@ interface DataTableColumnHeaderFilterableProps<
 > extends React.HTMLAttributes<HTMLDivElement> {
   column: Column<TData, TValue>;
   title: string;
-  queryParam: string;
+  paramName: string;
   choices: Choice[];
 }
 
@@ -38,10 +38,10 @@ export function DataTableColumnHeaderFilterableUni<TData, TValue>({
   column,
   title,
   className,
-  queryParam,
+  paramName,
   choices,
 }: DataTableColumnHeaderFilterableProps<TData, TValue>) {
-  const [query, setQuery] = useSearchParam(queryParam);
+  const [param, setParam] = useSearchParam(paramName);
   if (!column.getCanFilter()) {
     return <div className={cn(className)}>{title}</div>;
   }
@@ -51,7 +51,7 @@ export function DataTableColumnHeaderFilterableUni<TData, TValue>({
       return;
     }
 
-    setQuery(newValue);
+    setParam(newValue);
   };
 
   return (
@@ -68,7 +68,7 @@ export function DataTableColumnHeaderFilterableUni<TData, TValue>({
             <FilterIcon
               className={cn(
                 "size-4 ml-1 stroke-amber-400",
-                query && "fill-amber-400",
+                param && "fill-amber-400",
               )}
             />
           </Button>
@@ -80,13 +80,13 @@ export function DataTableColumnHeaderFilterableUni<TData, TValue>({
               <Button
                 variant="ghost"
                 className="h-4 w-4"
-                onClick={() => setQuery("")}
+                onClick={() => setParam("")}
                 aria-label={`${title}のフィルターを解除`}
               >
                 <CircleMinusIcon className="size-4" />
               </Button>
             </DropdownMenuLabel>
-            <DropdownMenuRadioGroup value={query} onValueChange={handleChange}>
+            <DropdownMenuRadioGroup value={param} onValueChange={handleChange}>
               {choices.map((choice) => (
                 <DropdownMenuRadioItem key={choice.id} value={choice.value}>
                   {choice.label}
@@ -105,10 +105,10 @@ export function DataTableColumnHeaderFilterableMulti<TData, TValue>({
   column,
   title,
   className,
-  queryParam,
+  paramName,
   choices,
 }: DataTableColumnHeaderFilterableProps<TData, TValue>) {
-  const [query, setQuery] = useSearchParam(queryParam);
+  const [param, setParam] = useSearchParam(paramName);
 
   if (!column.getCanFilter()) {
     return <div className={cn(className)}>{title}</div>;
@@ -119,12 +119,12 @@ export function DataTableColumnHeaderFilterableMulti<TData, TValue>({
       return;
     }
 
-    const currentValues = query.split(",");
+    const currentValues = param.split(",");
     // パラメータ変更
     if (currentValues.includes(additionalValue)) {
-      setQuery(currentValues.filter((v) => v !== additionalValue).join(","));
+      setParam(currentValues.filter((v) => v !== additionalValue).join(","));
     } else {
-      setQuery([...currentValues, additionalValue].join(","));
+      setParam([...currentValues, additionalValue].join(","));
     }
   };
 
@@ -142,7 +142,7 @@ export function DataTableColumnHeaderFilterableMulti<TData, TValue>({
             <FilterIcon
               className={cn(
                 "size-4 ml-1 stroke-amber-400",
-                query && "fill-amber-400",
+                param && "fill-amber-400",
               )}
             />
           </Button>
@@ -154,7 +154,7 @@ export function DataTableColumnHeaderFilterableMulti<TData, TValue>({
               <Button
                 variant="ghost"
                 className="h-4 w-4"
-                onClick={() => setQuery("")}
+                onClick={() => setParam("")}
                 aria-label={`${title}のフィルターを解除`}
               >
                 <CircleMinusIcon className="size-4" />
@@ -163,7 +163,7 @@ export function DataTableColumnHeaderFilterableMulti<TData, TValue>({
             {choices.map((choice) => (
               <DropdownMenuCheckboxItem
                 key={choice.id}
-                checked={query.split(",").includes(choice.value)}
+                checked={param.split(",").includes(choice.value)}
                 onCheckedChange={() => toggleChecked(choice.value)}
               >
                 {choice.label}

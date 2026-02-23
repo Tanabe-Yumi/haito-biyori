@@ -39,11 +39,11 @@ export async function getStocksWithTotalScore(
   minDividendYield: number | null,
   minScore: number | null,
   page: number = 0,
-  pageSize: number = 20,
+  rows: number = 10,
 ): Promise<StockPage> {
   // ページネーション
-  const from = page * pageSize;
-  const to = from + pageSize - 1;
+  const from = page * rows;
+  const to = from + rows - 1;
 
   // select from view(stocks left join scores on code)
   let query = supabase

@@ -44,7 +44,7 @@ export const columns: ColumnDef<StockWithTotalScore>[] = [
       <DataTableColumnHeaderFilterableMulti
         column={column}
         title="市場"
-        queryParam="market"
+        paramName="market"
         choices={markets}
         className="flex justify-center items-center"
       />
@@ -68,7 +68,7 @@ export const columns: ColumnDef<StockWithTotalScore>[] = [
       <DataTableColumnHeaderFilterableMulti
         column={column}
         title="業種"
-        queryParam="industry"
+        paramName="industry"
         choices={industries}
         className="flex justify-center items-center"
       />
@@ -109,7 +109,7 @@ export const columns: ColumnDef<StockWithTotalScore>[] = [
       <DataTableColumnHeaderFilterableUni
         column={column}
         title="配当利回り"
-        queryParam="yield"
+        paramName="yield"
         choices={dividendYieldRange}
         className="flex justify-center items-center"
       />
@@ -132,7 +132,7 @@ export const columns: ColumnDef<StockWithTotalScore>[] = [
       <DataTableColumnHeaderFilterableUni
         column={column}
         title="スコア"
-        queryParam="score"
+        paramName="score"
         choices={scoreRanges}
         className="flex justify-center items-center"
       />
