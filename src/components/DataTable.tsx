@@ -1,18 +1,13 @@
 "use client";
 
-import { useState } from "react";
 import {
   ColumnDef,
-  ColumnFiltersState,
-  SortingState,
-  VisibilityState,
   flexRender,
   getCoreRowModel,
-  getFilteredRowModel,
-  getSortedRowModel,
   useReactTable,
+  // 表示カラム変更
+  // VisibilityState,
 } from "@tanstack/react-table";
-import { SearchIcon, XIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -23,11 +18,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  InputGroup,
-  InputGroupAddon,
-  InputGroupInput,
-} from "@/components/ui/input-group";
+import SearchBox from "@/components/SearchBox";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -35,6 +26,7 @@ interface DataTableProps<TData, TValue> {
   currentPage?: number;
   totalPages?: number;
   onPageChange?: (page: number) => void;
+  isLoading: boolean;
 }
 
 export function DataTable<TData, TValue>({
@@ -43,34 +35,24 @@ export function DataTable<TData, TValue>({
   currentPage = 0,
   totalPages = 1,
   onPageChange,
+  isLoading,
 }: DataTableProps<TData, TValue>) {
-  const [sorting, setSorting] = useState<SortingState>([]);
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
-  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
-  const [rowSelection, setRowSelection] = useState({});
-  const [globalFilter, setGlobalFilter] = useState("");
+  // 表示カラム変更
+  // const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
 
   const table = useReactTable({
     data,
     columns,
-    onSortingChange: setSorting,
-    onColumnFiltersChange: setColumnFilters,
     getCoreRowModel: getCoreRowModel(),
-    // サーバーサイドページネーションの場合はgetPaginationRowModelを使用しない
-    getSortedRowModel: getSortedRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    // onColumnVisibilityChange: setColumnVisibility,
-    onRowSelectionChange: setRowSelection,
-    onGlobalFilterChange: setGlobalFilter,
-    // ページネーションを手動モードに設定
+    // ページネーション (手動モード)
     manualPagination: onPageChange !== undefined,
     pageCount: totalPages,
+    // 表示カラム変更
+    // onColumnVisibilityChange: setColumnVisibility,
     state: {
-      sorting,
-      columnFilters,
-      columnVisibility,
-      rowSelection,
-      globalFilter,
+      // 表示カラム変更
+      // rowSelection,
+      // ページネーション (手動モード)
       pagination: {
         pageIndex: currentPage,
         pageSize: data.length,
@@ -78,32 +60,11 @@ export function DataTable<TData, TValue>({
     },
   });
 
-  // TODO: 全体から検索できるように修正
-
   return (
     <div className="w-full space-y-4">
       <div className="flex items-center justify-between">
         {/* 検索窓 */}
-        <InputGroup className="max-w-xs">
-          <InputGroupInput
-            placeholder="銘柄名やコードで検索..."
-            value={globalFilter ?? ""}
-            onChange={(event) => setGlobalFilter(event.target.value)}
-          />
-          <InputGroupAddon>
-            <SearchIcon />
-          </InputGroupAddon>
-          <InputGroupAddon align="inline-end">
-            <button
-              onClick={() => setGlobalFilter("")}
-              className="p-1 hover:bg-gray-100 rounded transition-colors"
-              aria-label="検索をクリア"
-              title="検索をクリア"
-            >
-              <XIcon className="h-4 w-4" />
-            </button>
-          </InputGroupAddon>
-        </InputGroup>
+        <SearchBox isLoading={isLoading} />
 
         {/* TODO: 表示する行数選択のドロップダウンを追加 */}
       </div>
@@ -130,7 +91,16 @@ export function DataTable<TData, TValue>({
             ))}
           </TableHeader>
           <TableBody>
-            {table.getRowModel().rows?.length ? (
+            {isLoading ? (
+              <TableRow>
+                <TableCell
+                  colSpan={columns.length}
+                  className="h-24 text-center"
+                >
+                  読み込み中...
+                </TableCell>
+              </TableRow>
+            ) : table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map((row) => (
                 <TableRow
                   key={row.id}

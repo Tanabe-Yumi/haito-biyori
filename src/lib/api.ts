@@ -33,11 +33,11 @@ function mapToScore(scores: Tables<"scores">): Score {
 
 // select from stocks
 export async function getStocksWithTotalScore(
-  // search: string = "",
-  markets: string[] = [],
-  industries: string[] = [],
-  minDividendYield: number = 0,
-  minScore: number = 0,
+  search: string | null,
+  markets: string[] | null,
+  industries: string[] | null,
+  minDividendYield: number | null,
+  minScore: number | null,
   page: number = 0,
   pageSize: number = 20,
 ): Promise<StockPage> {
@@ -48,25 +48,48 @@ export async function getStocksWithTotalScore(
   // select from view(stocks left join scores on code)
   let query = supabase
     .from("stocks_with_total_score")
-    .select("*", { count: "exact" })
-    .gte("dividend_yield", minDividendYield)
-    .gte("total_score", minScore);
+    .select("*", { count: "exact" });
 
-  // filtering
-  if (markets.length !== 0) {
+  // 検索
+  if (search) {
+    // TODO: ユースケースに沿って検索方法を決める
+
+    // web検索構文
+    // query = query.textSearch("fts", search, { type: "websearch" });
+
+    // code,name であいまい検索
+    // - ilike: 大文字小文字を区別しない like
+    // - 複数単語が不可
+    // query = query.or(`code.ilike.%${search}%,name.ilike.%${search}%`);
+
+    // fts (full text search) を使用
+    // - 複数単語を順不同で検索。各単語は完全一致でヒット
+    query = query.textSearch("fts", search.split(/\s+/).join(" & "), {
+      config: "simple",
+    });
+  }
+
+  // 条件で絞り込み
+  if (markets && markets.length !== 0) {
     const filtering = constMarkets
       .filter((m) => markets.includes(m.value))
       .map((m) => m.label);
     query = query.in("market", filtering);
   }
-  if (industries.length !== 0) {
+  if (industries && industries.length !== 0) {
     const filtering = constIndustries
       .filter((i) => industries.includes(i.value))
       .map((i) => i.label);
     query = query.in("industry", filtering);
   }
+  if (minDividendYield) {
+    query = query.gte("dividend_yield", minDividendYield);
+  }
+  if (minScore) {
+    query = query.gte("total_score", minScore);
+  }
 
-  // finalize
+  // 最後にソートと範囲指定
   query = query
     .order("total_score", { ascending: false, nullsFirst: false })
     .range(from, to);

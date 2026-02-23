@@ -46,6 +46,7 @@ export const columns: ColumnDef<StockWithTotalScore>[] = [
         title="市場"
         queryParam="market"
         choices={markets}
+        className="flex justify-center items-center"
       />
     ),
     cell: ({ row }) => {
@@ -69,6 +70,7 @@ export const columns: ColumnDef<StockWithTotalScore>[] = [
         title="業種"
         queryParam="industry"
         choices={industries}
+        className="flex justify-center items-center"
       />
     ),
     cell: ({ row }) => {
@@ -87,7 +89,7 @@ export const columns: ColumnDef<StockWithTotalScore>[] = [
   {
     accessorKey: "price",
     enableGlobalFilter: false,
-    header: "現在値",
+    header: () => <div className="text-center">現在値</div>,
     cell: ({ row }) => {
       const price = row.getValue("price") as number | undefined;
       if (!price) return <div className="text-right px-4">-</div>;
@@ -109,6 +111,7 @@ export const columns: ColumnDef<StockWithTotalScore>[] = [
         title="配当利回り"
         queryParam="yield"
         choices={dividendYieldRange}
+        className="flex justify-center items-center"
       />
     ),
     cell: ({ row }) => {
@@ -131,6 +134,7 @@ export const columns: ColumnDef<StockWithTotalScore>[] = [
         title="スコア"
         queryParam="score"
         choices={scoreRanges}
+        className="flex justify-center items-center"
       />
     ),
     cell: ({ row }) => {

@@ -139,6 +139,7 @@ export type Database = {
           code: string
           created_at: string
           dividend_yield: number | null
+          fts: unknown
           industry: string | null
           market: string | null
           name: string
@@ -149,6 +150,7 @@ export type Database = {
           code: string
           created_at?: string
           dividend_yield?: number | null
+          fts?: unknown
           industry?: string | null
           market?: string | null
           name: string
@@ -159,6 +161,7 @@ export type Database = {
           code?: string
           created_at?: string
           dividend_yield?: number | null
+          fts?: unknown
           industry?: string | null
           market?: string | null
           name?: string
@@ -174,6 +177,7 @@ export type Database = {
           code: string | null
           created_at: string | null
           dividend_yield: number | null
+          fts: unknown
           industry: string | null
           market: string | null
           name: string | null

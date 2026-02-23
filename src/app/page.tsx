@@ -10,6 +10,8 @@ const Home = () => {
   const pageSize = 20;
   const currentPage = 0;
 
+  // TODO: フィルタ変更時も isLoading を対応させる
+  const [isLoading, setIsLoading] = useState(true);
   const [stocks, setStocks] = useState<StockWithTotalScore[]>([]);
   const [totalCount, setTotalCount] = useState(0);
 
@@ -18,7 +20,6 @@ const Home = () => {
   // クエリパラメーターが変更されるたびにデータ更新
   useEffect(() => {
     const allQueryParameters = searchParams.toString();
-    console.log(allQueryParameters);
     fetch(`${endpoint}?${allQueryParameters}`, {
       method: "GET",
     })
@@ -26,7 +27,9 @@ const Home = () => {
       .then((data) => {
         setStocks(data.stocks);
         setTotalCount(data.totalCount);
+        setIsLoading(false);
       });
+    // TODO: エラー処理
   }, [searchParams]);
 
   return (
@@ -45,6 +48,7 @@ const Home = () => {
         total={totalCount}
         currentPage={currentPage}
         pageSize={pageSize}
+        isLoading={isLoading}
       />
     </div>
   );

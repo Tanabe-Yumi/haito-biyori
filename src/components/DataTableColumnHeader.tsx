@@ -1,5 +1,5 @@
 import { type Column } from "@tanstack/react-table";
-import { FilterIcon } from "lucide-react";
+import { CircleMinusIcon, FilterIcon } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -62,15 +62,29 @@ export function DataTableColumnHeaderFilterableUni<TData, TValue>({
             variant="ghost"
             size="sm"
             className="data-[state=open]:bg-accent -ml-3 h-8"
+            aria-label={`${title}をフィルター`}
           >
             <span>{title}</span>
-            <FilterIcon className="size-4 ml-1" />
+            <FilterIcon
+              className={cn(
+                "size-4 ml-1 stroke-amber-400",
+                query && "fill-amber-400",
+              )}
+            />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent className="w-46">
           <DropdownMenuGroup>
-            <DropdownMenuLabel className="text-muted-foreground">
+            <DropdownMenuLabel className="text-muted-foreground flex justify-between items-center">
               単一選択
+              <Button
+                variant="ghost"
+                className="h-4 w-4"
+                onClick={() => setQuery("")}
+                aria-label={`${title}のフィルターを解除`}
+              >
+                <CircleMinusIcon className="size-4" />
+              </Button>
             </DropdownMenuLabel>
             <DropdownMenuRadioGroup value={query} onValueChange={handleChange}>
               {choices.map((choice) => (
@@ -122,15 +136,29 @@ export function DataTableColumnHeaderFilterableMulti<TData, TValue>({
             variant="ghost"
             size="sm"
             className="data-[state=open]:bg-accent -ml-3 h-8"
+            aria-label={`${title}をフィルター`}
           >
             <span>{title}</span>
-            <FilterIcon className="size-4 ml-1" />
+            <FilterIcon
+              className={cn(
+                "size-4 ml-1 stroke-amber-400",
+                query && "fill-amber-400",
+              )}
+            />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent className="w-46">
           <DropdownMenuGroup>
-            <DropdownMenuLabel className="text-muted-foreground">
+            <DropdownMenuLabel className="text-muted-foreground flex justify-between items-center">
               複数選択
+              <Button
+                variant="ghost"
+                className="h-4 w-4"
+                onClick={() => setQuery("")}
+                aria-label={`${title}のフィルターを解除`}
+              >
+                <CircleMinusIcon className="size-4" />
+              </Button>
             </DropdownMenuLabel>
             {choices.map((choice) => (
               <DropdownMenuCheckboxItem

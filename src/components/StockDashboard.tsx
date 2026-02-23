@@ -11,6 +11,7 @@ interface StockDashboardProps {
   total: number;
   currentPage: number;
   pageSize: number;
+  isLoading: boolean;
 }
 
 export function StockDashboard({
@@ -18,6 +19,7 @@ export function StockDashboard({
   total,
   currentPage,
   pageSize = 20,
+  isLoading,
 }: StockDashboardProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -46,6 +48,7 @@ export function StockDashboard({
         currentPage={currentPage}
         totalPages={totalPages}
         onPageChange={handlePageChange}
+        isLoading={isLoading}
       />
     </div>
   );
