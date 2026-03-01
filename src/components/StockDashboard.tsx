@@ -1,53 +1,55 @@
 "use client";
 
-import { Stock } from "@/types/stock";
+import { useEffect, useState } from "react";
+import { StockWithTotalScore } from "@/types/stock";
+import { Market } from "@/types/market";
+import { Industry } from "@/types/industry";
 import { DataTable } from "@/components/DataTable";
 import { columns } from "@/components/StockTableColumns";
-import { DividendFilter } from "@/components/DividendFilter";
-import { useRouter, useSearchParams } from "next/navigation";
-import { useTransition } from "react";
 
 interface StockDashboardProps {
-  stocks: Stock[];
+  stocks: StockWithTotalScore[];
   total: number;
-  currentPage: number;
-  pageSize: number;
+  isLoading: boolean;
 }
 
 export function StockDashboard({
   stocks,
   total,
-  currentPage,
-  pageSize = 20,
+  isLoading,
 }: StockDashboardProps) {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const [isPending, startTransition] = useTransition();
+  const marketEndpoint = "/api/markets";
+  const industryEndpoint = "/api/industries";
 
-  // テーブルのページ変更ハンドラ
-  const handlePageChange = (newPage: number) => {
-    const params = new URLSearchParams(searchParams.toString());
-    params.set("page", newPage.toString());
+  const [markets, setMarkets] = useState<Market[]>([]);
+  const [industries, setIndustries] = useState<Industry[]>([]);
 
-    startTransition(() => {
-      router.push(`/?${params.toString()}`);
-    });
-  };
+  useEffect(() => {
+    // 市場データを取得
+    fetch(marketEndpoint, {
+      method: "GET",
+    })
+      .then((res) => res.json())
+      .then((data) => setMarkets(data));
 
-  const totalPages = Math.ceil(total / pageSize);
+    // 業種データを取得
+    fetch(industryEndpoint, {
+      method: "GET",
+    })
+      .then((res) => res.json())
+      .then((data) => setIndustries(data));
+  }, []);
 
   return (
     <div className="flex flex-col space-y-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <h2 className="text-2xl font-bold tracking-tight">銘柄一覧</h2>
-        <DividendFilter />
       </div>
       <DataTable
-        columns={columns}
+        columns={columns(markets, industries)}
         data={stocks}
-        currentPage={currentPage}
-        totalPages={totalPages}
-        onPageChange={handlePageChange}
+        total={total}
+        isLoading={isLoading}
       />
     </div>
   );

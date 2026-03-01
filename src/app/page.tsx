@@ -1,28 +1,34 @@
-import { getStocks } from "@/lib/api";
+"use client";
+
+import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { StockDashboard } from "@/components/StockDashboard";
-import { DataNotFoundArea } from "@/components/layout/DataNotFoundArea";
+import { StockWithTotalScore } from "@/types/stock";
 
-interface SearchParams {
-  min_yield?: string;
-  page?: string;
-}
+const Home = () => {
+  const endpoint = "/api/stocks";
 
-const Home = async ({
-  searchParams,
-}: {
-  searchParams: Promise<SearchParams>;
-}) => {
-  const params = await searchParams;
-  const minYieldParam = params.min_yield;
-  const minYield =
-    minYieldParam === undefined ? 3.5 : parseFloat(minYieldParam);
+  // TODO: フィルタ変更時も isLoading を対応させる
+  const [isLoading, setIsLoading] = useState(true);
+  const [stocks, setStocks] = useState<StockWithTotalScore[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
 
-  // ページネーションパラメータ
-  const pageSize = 20;
-  const currentPage = parseInt(params.page || "0");
+  const searchParams = useSearchParams();
 
-  const result = await getStocks(minYield, currentPage, pageSize);
-  const { stocks, total } = result;
+  // クエリパラメーターが変更されるたびにデータ更新
+  useEffect(() => {
+    const allQueryParameters = searchParams.toString();
+    fetch(`${endpoint}?${allQueryParameters}`, {
+      method: "GET",
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        setStocks(data.stocks);
+        setTotalCount(data.totalCount);
+        setIsLoading(false);
+      });
+    // TODO: エラー処理
+  }, [searchParams]);
 
   return (
     <div className="space-y-8">
@@ -35,16 +41,17 @@ const Home = async ({
         </p>
       </section>
 
-      {stocks.length === 0 ? (
-        <DataNotFoundArea />
-      ) : (
-        <StockDashboard
-          stocks={stocks}
-          total={total}
-          currentPage={currentPage}
-          pageSize={pageSize}
-        />
-      )}
+      {/* TODO: いますぐ株価最新化ボタン */}
+
+      {/* TODO: いますぐスコア再計算ボタン */}
+
+      {/* TODO: CSVダウンロード機能を追加 */}
+
+      <StockDashboard
+        stocks={stocks}
+        total={totalCount}
+        isLoading={isLoading}
+      />
     </div>
   );
 };

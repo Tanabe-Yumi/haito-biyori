@@ -1,6 +1,5 @@
 "use client";
 
-// TODO: 表示がおかしい
 // TODO: サーバーコンポーネントにできるか？？
 
 import {
@@ -14,22 +13,20 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
-import { Tables } from "@/types/database.types";
+import { FinancialStatement } from "@/types/stock";
 
 type HistoricalChartProps = {
-  history: Tables<"financial_history">[];
+  history: FinancialStatement[];
 };
 
 export const HistoricalChart = ({ history }: HistoricalChartProps) => {
-  // Filter for FY only for cleaner chart, or use all? Usually FY trends are best.
-  // TODO: 3月決算以外も考慮した表示に変更
-  const data = history.filter((h) => h.month === 3);
+  // TODO: 各年度で最新のデータだけ表示する
 
   return (
     <div className="w-full h-100">
       <ResponsiveContainer width="100%" height="100%">
         <ComposedChart
-          data={data}
+          data={history}
           margin={{
             top: 20,
             right: 20,
@@ -65,7 +62,7 @@ export const HistoricalChart = ({ history }: HistoricalChartProps) => {
           />
 
           <Tooltip
-            formatter={(value: any) =>
+            formatter={(value) =>
               value !== undefined ? Number(value).toLocaleString() : ""
             }
             labelStyle={{ color: "black" }}
@@ -82,7 +79,7 @@ export const HistoricalChart = ({ history }: HistoricalChartProps) => {
           <Line
             yAxisId="right"
             type="monotone"
-            dataKey="dividend_per_share"
+            dataKey="dividendPerShare"
             name="配当金"
             stroke="#82ca9d"
             strokeWidth={2}
@@ -90,7 +87,7 @@ export const HistoricalChart = ({ history }: HistoricalChartProps) => {
           <Line
             yAxisId="right2"
             type="monotone"
-            dataKey="operating_profit_margin"
+            dataKey="operatingProfitMargin"
             name="営業利益率"
             stroke="#ff7300"
             strokeWidth={2}

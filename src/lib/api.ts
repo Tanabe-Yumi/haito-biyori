@@ -1,142 +1,209 @@
 import { supabase } from "@/lib/supabase";
-import { Tables } from "@/types/database.types";
-import { Stock, Score } from "@/types/stock";
+import {
+  StockWithTotalScore,
+  StockWithScores,
+  FinancialStatement,
+} from "@/types/stock";
+import { Market } from "@/types/market";
+import { Industry } from "@/types/industry";
 
 // TODO: エラーハンドリング
 
-function mapToScore(scores?: Tables<"scores">): Score {
-  return {
-    sales: scores?.sales ?? 0,
-    operatingProfitMargin: scores?.operating_profit_margin ?? 0,
-    eps: scores?.earnings_per_share ?? 0,
-    equityRatio: scores?.equity_ratio ?? 0,
-    operatingCF: scores?.operating_cash_flow ?? 0,
-    cash: scores?.cash ?? 0,
-    dividendPerShare: scores?.dividend_per_share ?? 0,
-    payoutRatio: scores?.payout_ratio ?? 0,
-    total: scores?.total ?? 0,
-  };
+// TODO: npx supabase xxx
+
+// 銘柄リストと総数
+// TODO: types/ 側で定義
+export interface StockPage {
+  stocks: StockWithTotalScore[];
+  totalCount: number;
 }
 
-export interface GetStocksResult {
-  stocks: Stock[];
-  total: number;
-}
-
-// stocks テーブルから全銘柄を取得
-export async function getStocks(
-  minDividendYield: number = 0,
+// 基本データと合計スコアを取得
+// フィルターやページネーションが可能
+export async function getStocksWithTotalScore(
+  search: string | null,
+  markets: number[] | null,
+  industries: number[] | null,
+  minDividendYield: number | null,
+  minScore: number | null,
   page: number = 0,
-  pageSize: number = 20,
-): Promise<GetStocksResult> {
-  // stocks join scores
-  let query = supabase.from("stocks").select(
-    `
-      *,
-      scores ( * )
-    `,
-    { count: "exact" },
-  );
+  rows: number = 10,
+): Promise<StockPage> {
+  // ページネーション
+  const from = page * rows;
+  const to = from + rows - 1;
 
-  if (minDividendYield > 0) {
+  // select from view(stocks left join scores on code)
+  let query = supabase
+    .from("stocks_with_total_score")
+    .select("*", { count: "exact" });
+
+  // 検索
+  if (search) {
+    // TODO: ユースケースに沿って検索方法を決める
+    // TODO: 検索用カラムから fts カラムを作成し、検索対象とする
+
+    // web検索構文
+    // query = query.textSearch("fts", search, { type: "websearch" });
+
+    // code,name であいまい検索
+    // - ilike: 大文字小文字を区別しない like
+    // - 複数単語が不可
+    // query = query.or(`code.ilike.%${search}%,name.ilike.%${search}%`);
+
+    // fts (full text search) を使用
+    // - 複数単語を順不同で検索。各単語は完全一致でヒット
+    query = query.textSearch("fts", search.split(/\s+/).join(" & "), {
+      config: "simple",
+    });
+  }
+
+  // 条件で絞り込み
+  if (markets && markets.length !== 0) {
+    query = query.in("market_id", markets);
+  }
+  if (industries && industries.length !== 0) {
+    query = query.in("industry_id", industries);
+  }
+  if (minDividendYield) {
     query = query.gte("dividend_yield", minDividendYield);
   }
-
-  // ページネーション
-  const from = page * pageSize;
-  const to = from + pageSize - 1;
-
-  // ソート: scores.total の降順
-  // TODO: ソートがうまく効いていない
-  query = query
-    .order("total", {
-      foreignTable: "scores",
-      ascending: false,
-      nullsFirst: false,
-    })
-    .range(from, to);
-
-  const { data: stocksData, error: stocksError, count } = await query;
-
-  if (stocksError || !stocksData) {
-    console.error("Error fetching stocks:", stocksError);
-    return { stocks: [], total: 0 };
+  if (minScore) {
+    query = query.gte("total_score", minScore);
   }
 
-  // 最新の決算情報を取得 (レーダーチャート用)
-  const { data: historyData, error: historyError } = await supabase
-    .from("financial_history")
-    .select("*")
-    .order("year", { ascending: false });
+  // 最後にソートと範囲指定
+  query = query
+    .order("total_score", { ascending: false, nullsFirst: false })
+    .range(from, to);
 
-  if (historyError || !historyData) {
-    console.error("Error fetching history:", historyError);
-    return { stocks: [], total: 0 };
+  const { data, error, count } = await query;
+
+  if (error || !data) {
+    console.error("Error fetching stocks:", error);
+    throw error;
   }
 
   // Stock 型にマッピング
-  const stocks: Stock[] = stocksData.map((s) => {
-    // 各評価項目の最新値
-    const score = mapToScore(s.scores ?? undefined);
-
+  const stocks: StockWithTotalScore[] = data.map((s) => {
+    // !: code,name,updated_at が not null のテーブルの inner join であるため、null でないとして扱う
     return {
-      code: s.code,
-      name: s.name,
-      industry: s.industry ?? undefined,
-      market: s.market ?? undefined,
-      price: s.price ?? 0,
-      dividendYield: s.dividend_yield ?? 0,
-      score,
-      updatedAt: s.updated_at,
+      code: s.code!,
+      name: s.name!,
+      industry: s.industry_name,
+      market: s.market_name,
+      price: s.price,
+      dividendYield: s.dividend_yield,
+      totalScore: s.total_score,
+      updatedAt: s.updated_at!,
     };
   });
 
-  return { stocks, total: count ?? 0 };
+  return { stocks, totalCount: count ?? 0 };
 }
 
-export async function getStockByCode(code: string): Promise<Stock | null> {
+// 引数のコードに一致する銘柄の、基本データとスコアを取得
+export async function getStockWithScoresById(
+  code: string,
+): Promise<StockWithScores> {
   const { data, error } = await supabase
-    .from("stocks")
-    .select(
-      `
-      *,
-      scores (*)
-    `,
-    )
+    .from("stocks_with_scores")
+    .select("*")
     .eq("code", code);
 
-  if (error) {
+  if (error || !data) {
     console.error("Error fetching stock:", error);
-    return null;
+    throw error;
   }
 
-  const score = mapToScore(data[0].scores ?? undefined);
-
   return {
-    code: data[0].code,
-    name: data[0].name,
-    industry: data[0].industry ?? undefined,
-    market: data[0].market ?? undefined,
-    price: data[0].price ?? 0,
-    dividendYield: data[0].dividend_yield ?? 0,
-    score,
-    updatedAt: data[0].updated_at,
+    code: data[0].code!,
+    name: data[0].name!,
+    industry: data[0].industry,
+    market: data[0].market,
+    price: data[0].price,
+    dividendYield: data[0].dividend_yield,
+    updatedAt: data[0].updated_at!,
+    totalScore: data[0].total_score,
+    salesScore: data[0].sales_score,
+    operatingProfitMarginScore: data[0].operating_profit_margin_score,
+    epsScore: data[0].earnings_per_share_score,
+    operatingCFScore: data[0].operating_cash_flow_score,
+    dividendPerShareScore: data[0].dividend_per_share_score,
+    payoutRatioScore: data[0].payout_ratio_score,
+    equityRatioScore: data[0].equity_ratio_score,
+    cashScore: data[0].cash_score,
   };
 }
 
-export async function getFinancialHistory(
+// 引数のコードに一致する銘柄の、過去の決算データを取得
+export async function getFinancialHistoryByCode(
   code: string,
-): Promise<Tables<"financial_history">[]> {
+): Promise<FinancialStatement[]> {
   const { data, error } = await supabase
     .from("financial_history")
     .select("*")
     .eq("code", code)
     .order("year", { ascending: true });
 
-  if (error) {
+  if (error || !data) {
     console.error("Error fetching history:", error);
-    return [];
+    throw error;
   }
 
-  return data ?? [];
+  const financialHistory: FinancialStatement[] = data.map((f) => {
+    return {
+      code: f.code,
+      year: f.year,
+      month: f.month,
+      sales: f.sales,
+      operatingProfitMargin: f.operating_profit_margin,
+      eps: f.earnings_per_share,
+      operatingCF: f.operating_cash_flow,
+      dividendPerShare: f.dividend_per_share,
+      payoutRatio: f.payout_ratio,
+      equityRatio: f.equity_ratio,
+      cash: f.cash,
+    };
+  });
+
+  return financialHistory;
+}
+
+// 全ての market データを取得
+export async function getMarkets(): Promise<Market[]> {
+  const { data, error } = await supabase.from("markets").select("*");
+
+  if (error || !data) {
+    console.error("Error fetching history:", error);
+    throw error;
+  }
+
+  const markets: Market[] = data.map((m) => {
+    return {
+      id: m.id,
+      name: m.name,
+    };
+  });
+
+  return markets;
+}
+
+// 全ての industry データを取得
+export async function getIndustries(): Promise<Industry[]> {
+  const { data, error } = await supabase.from("industries").select("*");
+
+  if (error || !data) {
+    console.error("Error fetching history:", error);
+    throw error;
+  }
+
+  const industries: Industry[] = data.map((m) => {
+    return {
+      id: m.id,
+      name: m.name,
+    };
+  });
+
+  return industries;
 }

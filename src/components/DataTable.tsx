@@ -1,27 +1,14 @@
 "use client";
 
-import { useState } from "react";
 import {
   ColumnDef,
-  ColumnFiltersState,
-  SortingState,
-  VisibilityState,
   flexRender,
   getCoreRowModel,
-  getFilteredRowModel,
-  getPaginationRowModel,
-  getSortedRowModel,
   useReactTable,
+  // 表示カラム変更
+  // VisibilityState,
 } from "@tanstack/react-table";
-import { ChevronDown, SearchIcon, XIcon } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuCheckboxItem,
-  DropdownMenuContent,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import {
   Table,
   TableBody,
@@ -30,119 +17,59 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  InputGroup,
-  InputGroupAddon,
-  InputGroupInput,
-} from "@/components/ui/input-group";
+import SearchBox from "@/components/SearchBox";
+import PaginationControll from "@/components/PaginationControll";
+import RowsSelector from "@/components/RowsSelector";
+import { useSearchParam } from "@/hooks/use-search-params";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
-  currentPage?: number;
-  totalPages?: number;
-  onPageChange?: (page: number) => void;
+  total: number;
+  isLoading: boolean;
 }
 
 export function DataTable<TData, TValue>({
   columns,
   data,
-  currentPage = 0,
-  totalPages = 1,
-  onPageChange,
+  total,
+  isLoading,
 }: DataTableProps<TData, TValue>) {
-  const [sorting, setSorting] = useState<SortingState>([]);
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
-  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
-  const [rowSelection, setRowSelection] = useState({});
-  const [globalFilter, setGlobalFilter] = useState("");
+  const [page] = useSearchParam("page");
+  const [rows] = useSearchParam("rows");
+  const currentPage = parseInt(page) - 1 || 0;
+  const currentRows = parseInt(rows) || 10;
+  const from = currentPage * currentRows + 1;
+  const to = from + data.length - 1;
+
+  // 表示カラム変更
+  // const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
 
   const table = useReactTable({
     data,
     columns,
-    onSortingChange: setSorting,
-    onColumnFiltersChange: setColumnFilters,
     getCoreRowModel: getCoreRowModel(),
-    // サーバーサイドページネーションの場合はgetPaginationRowModelを使用しない
-    getSortedRowModel: getSortedRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    onColumnVisibilityChange: setColumnVisibility,
-    onRowSelectionChange: setRowSelection,
-    onGlobalFilterChange: setGlobalFilter,
-    // ページネーションを手動モードに設定
-    manualPagination: onPageChange !== undefined,
-    pageCount: totalPages,
+    // ページネーション (手動モード)
+    manualPagination: true,
+    // 表示カラム変更
+    // onColumnVisibilityChange: setColumnVisibility,
     state: {
-      sorting,
-      columnFilters,
-      columnVisibility,
-      rowSelection,
-      globalFilter,
-      pagination: {
-        pageIndex: currentPage,
-        pageSize: data.length,
-      },
+      // 表示カラム変更
+      // rowSelection,
     },
   });
-
-  // TODO: 全体から検索できるように修正
 
   return (
     <div className="w-full space-y-4">
       <div className="flex items-center justify-between">
         {/* 検索窓 */}
-        <InputGroup className="max-w-xs">
-          <InputGroupInput
-            placeholder="銘柄名やコードで検索..."
-            value={globalFilter ?? ""}
-            onChange={(event) => setGlobalFilter(event.target.value)}
-          />
-          <InputGroupAddon>
-            <SearchIcon />
-          </InputGroupAddon>
-          <InputGroupAddon align="inline-end">
-            <button
-              onClick={() => setGlobalFilter("")}
-              className="p-1 hover:bg-gray-100 rounded transition-colors"
-              aria-label="検索をクリア"
-              title="検索をクリア"
-            >
-              <XIcon className="h-4 w-4" />
-            </button>
-          </InputGroupAddon>
-        </InputGroup>
+        <SearchBox isLoading={isLoading} />
 
-        {/* 表示カラム選択 */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" className="ml-auto">
-              表示項目 <ChevronDown className="ml-2 h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            {table
-              .getAllColumns()
-              .filter((column) => column.getCanHide())
-              .map((column) => {
-                return (
-                  <DropdownMenuCheckboxItem
-                    key={column.id}
-                    className="capitalize"
-                    checked={column.getIsVisible()}
-                    onCheckedChange={(value) =>
-                      column.toggleVisibility(!!value)
-                    }
-                  >
-                    {typeof column.columnDef.header === "string"
-                      ? column.columnDef.header
-                      : column.id}
-                  </DropdownMenuCheckboxItem>
-                );
-              })}
-          </DropdownMenuContent>
-        </DropdownMenu>
+        {/* 表示行数セレクター */}
+        <RowsSelector />
       </div>
 
+      {/* テーブル */}
       <div className="rounded-md border">
         <Table>
           <TableHeader>
@@ -164,7 +91,16 @@ export function DataTable<TData, TValue>({
             ))}
           </TableHeader>
           <TableBody>
-            {table.getRowModel().rows?.length ? (
+            {isLoading ? (
+              <TableRow>
+                <TableCell
+                  colSpan={columns.length}
+                  className="h-24 text-center"
+                >
+                  読み込み中...
+                </TableCell>
+              </TableRow>
+            ) : table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map((row) => (
                 <TableRow
                   key={row.id}
@@ -194,56 +130,14 @@ export function DataTable<TData, TValue>({
         </Table>
       </div>
 
-      {/* ページネーション */}
-      <div className="flex items-center justify-end space-x-2 py-4">
+      <div className="flex items-center justify-between space-x-2">
+        {/* 表示範囲 */}
         <div className="text-muted-foreground text-sm">
-          {onPageChange ? (
-            <>
-              ページ {currentPage + 1} / {totalPages}
-            </>
-          ) : (
-            <>
-              {table.getFilteredRowModel().rows.length} 件中{" "}
-              {table.getFilteredSelectedRowModel().rows.length} を選択中
-            </>
-          )}
+          {`${from} 〜 ${to} / ${total} 件`}
         </div>
-        <div className="space-x-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              if (onPageChange) {
-                onPageChange(currentPage - 1);
-              } else {
-                table.previousPage();
-              }
-            }}
-            disabled={
-              onPageChange ? currentPage === 0 : !table.getCanPreviousPage()
-            }
-          >
-            前へ
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              if (onPageChange) {
-                onPageChange(currentPage + 1);
-              } else {
-                table.nextPage();
-              }
-            }}
-            disabled={
-              onPageChange
-                ? currentPage >= totalPages - 1
-                : !table.getCanNextPage()
-            }
-          >
-            次へ
-          </Button>
-        </div>
+
+        {/* ページネーション */}
+        <PaginationControll total={total} />
       </div>
     </div>
   );

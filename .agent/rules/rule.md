@@ -1,0 +1,11 @@
+---
+trigger: always_on
+---
+
+# 基本方針
+
+- 特に指示がない限り、日本語で回答する。
+- 以下のドキュメントも**日本語で作成する**：
+  - 実装計画 (Implementation Plan)
+  - 修正内容の確認 (Walkthrough)
+  - タスクリスト (Task List)

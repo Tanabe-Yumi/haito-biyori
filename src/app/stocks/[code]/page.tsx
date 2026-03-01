@@ -1,7 +1,8 @@
 import { notFound } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { getStockByCode, getFinancialHistory } from "@/lib/api";
+import { getStockWithScoresById, getFinancialHistoryByCode } from "@/lib/api";
+import { formatDate } from "@/lib/formatDate";
 import { HistoricalChart } from "@/components/HistoricalChart";
 import { CircleScoreGage } from "@/components/CircleScoreGage";
 import { HoverInfoCard } from "@/components/HoverInfoCard";
@@ -28,39 +29,44 @@ const StockDetailPage = async ({
   params: Promise<{ code: string }>;
 }) => {
   const { code } = await params;
-  // TODO: getStockByCode() の戻り値を精査
-  const stock = await getStockByCode(code);
-  const history = await getFinancialHistory(code);
+  const stock = await getStockWithScoresById(code).catch((e) =>
+    console.error(e),
+  );
+  const history = await getFinancialHistoryByCode(code).catch((e) =>
+    console.error(e),
+  );
 
   if (!stock) {
     notFound();
   }
 
+  const updatedDate = formatDate(new Date(stock.updatedAt));
+
   const evaluationItems = [
     {
       label: "売上",
-      score: stock.score?.sales,
+      score: stock.salesScore,
       icon: TrendingUpIcon,
       longLabel: "売上 (Sales)",
       description: "会社の総売り上げ。右肩上がりが理想。",
     },
     {
       label: "営業利益率",
-      score: stock.score?.operatingProfitMargin,
+      score: stock.operatingProfitMarginScore,
       icon: ChartLineIcon,
       longLabel: "営業利益率 (Operating Profit Margin)",
       description: "効率的に稼げているかどうか。常に10%以上が理想。",
     },
     {
       label: "EPS",
-      score: stock.score?.eps,
+      score: stock.epsScore,
       icon: ChartColumnBigIcon,
       longLabel: "EPS (Earnings Per Share)",
       description: "一株あたりの純利益。実質配当の上限。右肩上がりが理想。",
     },
     {
       label: "営業CF",
-      score: stock.score?.operatingCF,
+      score: stock.operatingCFScore,
       icon: CoinsIcon,
       longLabel: "営業CF (Operating Cash Flow)",
       description:
@@ -68,14 +74,14 @@ const StockDetailPage = async ({
     },
     {
       label: "一株配当",
-      score: stock.score?.dividendPerShare,
+      score: stock.dividendPerShareScore,
       icon: HandCoinsIcon,
       longLabel: "一株配当 (Dividend per Share)",
       description: "1株あたりの配当金。減配がないことが理想。",
     },
     {
       label: "配当性向",
-      score: stock.score?.payoutRatio,
+      score: stock.payoutRatioScore,
       icon: ChartPieIcon,
       longLabel: "配当性向 (Dividend Ratio)",
       description:
@@ -83,7 +89,7 @@ const StockDetailPage = async ({
     },
     {
       label: "自己資本比率",
-      score: stock.score?.equityRatio,
+      score: stock.equityRatioScore,
       icon: ShieldCheckIcon,
       longLabel: "自己資本比率 (Equity Ratio)",
       description:
@@ -91,7 +97,7 @@ const StockDetailPage = async ({
     },
     {
       label: "現金等",
-      score: stock.score?.cash,
+      score: stock.cashScore,
       icon: BanknoteIcon,
       longLabel: "現金等 (Cash and Cash Equivalents)",
       description:
@@ -101,6 +107,7 @@ const StockDetailPage = async ({
 
   return (
     <div className="max-w-4xl mx-auto p-4 pt-0 md:p-8 md:pt-0 space-y-6">
+      {/* TODO: ページやフィルターも前のを引き継いだ状態で戻る */}
       <Link
         href="/"
         className="inline-flex items-center text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
@@ -125,21 +132,24 @@ const StockDetailPage = async ({
           </div>
           <div className="flex gap-3">
             <h2 className="text-3xl font-bold">{stock.name}</h2>
+            {/* TODO: 企業公式サイトへのリンク */}
           </div>
         </div>
 
         <div className="flex items-center gap-6">
           <div className="text-left">
             <p className="text-sm text-muted-foreground font-medium">現在値</p>
-            <p className="text-2xl font-bold text-gray-900">¥{stock.price}</p>
+            <p className="text-2xl font-bold text-right text-gray-900">
+              ¥{stock.price ?? " -"}
+            </p>
           </div>
           <Separator orientation="vertical" />
           <div className="text-left">
             <p className="text-sm text-muted-foreground font-medium">
               配当利回り
             </p>
-            <p className="text-2xl font-bold text-emerald-700">
-              {stock.dividendYield}%
+            <p className="text-2xl font-bold text-right text-emerald-700">
+              {stock.dividendYield ?? "- "}%
             </p>
           </div>
         </div>
@@ -154,7 +164,7 @@ const StockDetailPage = async ({
           <h3 className="text-lg font-bold mb-4 text-white uppercase tracking-widest">
             総合スコア
           </h3>
-          <CircleScoreGage score={stock.score?.total ?? 0} maxScore={40} />
+          <CircleScoreGage score={stock.totalScore} maxScore={40} />
         </div>
 
         {/* 右側: 項目ごとのスコア */}
@@ -183,7 +193,7 @@ const StockDetailPage = async ({
                     />
                   </span>
                   <span className="font-bold text-neutral-800">
-                    {item.score} / 5
+                    {item.score ?? "-"} / 5
                   </span>
                 </div>
                 <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
@@ -206,7 +216,18 @@ const StockDetailPage = async ({
           <ChartNoAxesCombinedIcon className="text-emerald-600 w-5 h-5" />
           業績推移
         </h3>
-        <HistoricalChart history={history} />
+        {!!history?.length ? (
+          <HistoricalChart history={history} />
+        ) : (
+          <p className="text-center text-muted-foreground">
+            データがありません
+          </p>
+        )}
+      </div>
+
+      {/* 最終更新日 */}
+      <div className="flex flex-col gap-y-2 text-right text-sm text-muted-foreground">
+        最終更新：{updatedDate}
       </div>
 
       {/* TODO: フッター */}

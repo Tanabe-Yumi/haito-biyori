@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Suspense } from "react";
+import { NuqsAdapter } from "nuqs/adapters/next/app";
 import "./globals.css";
 import { Header } from "@/components/layout/Header";
 import { Loader } from "@/components/layout/Loader";
@@ -35,12 +36,14 @@ export default function RootLayout({
           geistMono.variable,
         )}
       >
-        <Header />
-        <Suspense fallback={<Loader label="読み込み中..." />}>
-          <main className="container mx-auto py-6 px-4 md:px-8">
-            {children}
-          </main>
-        </Suspense>
+        <NuqsAdapter>
+          <Header />
+          <Suspense fallback={<Loader label="読み込み中..." />}>
+            <main className="container mx-auto py-6 px-4 md:px-8">
+              {children}
+            </main>
+          </Suspense>
+        </NuqsAdapter>
       </body>
     </html>
   );
