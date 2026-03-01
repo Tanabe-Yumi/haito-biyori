@@ -14,8 +14,18 @@ export async function GET(request: NextRequest) {
   const rowsParam = searchParams.get("rows");
 
   // 引数用の変数準備
-  const markets = marketParam ? marketParam.split(",") : null;
-  const industries = industryParam ? industryParam.split(",") : null;
+  const markets = marketParam
+    ? marketParam
+        .split(",")
+        .filter((m) => m !== "")
+        .map((m) => parseInt(m))
+    : null;
+  const industries = industryParam
+    ? industryParam
+        .split(",")
+        .filter((m) => m !== "")
+        .map((m) => parseInt(m))
+    : null;
   const minYield = minYieldParam ? parseFloat(minYieldParam) : null;
   const minScore = minScoreParam ? parseFloat(minScoreParam) : null;
   // 0 基準のページ番号に直す

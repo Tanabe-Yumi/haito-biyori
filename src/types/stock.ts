@@ -26,22 +26,26 @@ interface Stock {
 }
 
 // 銘柄情報 with 合計スコア
+// 一覧画面用
 export interface StockWithTotalScore extends Stock {
   totalScore: number | null;
 }
 
 // 銘柄情報 with 全スコア
+// 詳細画面用
 export interface StockWithScores extends Stock {
-  score: Score | null;
-}
-
-// スコア
-export interface Score extends EvaluationItems {
-  total: number | null;
+  totalScore: number | null;
+  salesScore: number | null;
+  operatingProfitMarginScore: number | null;
+  epsScore: number | null;
+  operatingCFScore: number | null;
+  dividendPerShareScore: number | null;
+  payoutRatioScore: number | null;
+  equityRatioScore: number | null;
+  cashScore: number | null;
 }
 
 // 決算情報
-// 内容が同じのため Score を流用
 export interface FinancialStatement extends EvaluationItems {
   code: string;
   year: number;

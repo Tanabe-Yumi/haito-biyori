@@ -15,22 +15,20 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useSearchParam } from "@/hooks/use-search-params";
 
-// TODO: クエリパラメーターに渡す値を DB の ID にする (markets,industries を DB 保存にする)
-
-interface Choice {
+interface UniChoice {
   id: number;
   value: string;
   label: string;
 }
 
-interface DataTableColumnHeaderFilterableProps<
+interface DataTableColumnHeaderFilterableUniProps<
   TData,
   TValue,
 > extends React.HTMLAttributes<HTMLDivElement> {
   column: Column<TData, TValue>;
   title: string;
   paramName: string;
-  choices: Choice[];
+  choices: UniChoice[];
 }
 
 // 単一選択でフィルタできるカラムヘッダー
@@ -40,7 +38,7 @@ export function DataTableColumnHeaderFilterableUni<TData, TValue>({
   className,
   paramName,
   choices,
-}: DataTableColumnHeaderFilterableProps<TData, TValue>) {
+}: DataTableColumnHeaderFilterableUniProps<TData, TValue>) {
   const [param, setParam] = useSearchParam(paramName);
   if (!column.getCanFilter()) {
     return <div className={cn(className)}>{title}</div>;
@@ -100,6 +98,21 @@ export function DataTableColumnHeaderFilterableUni<TData, TValue>({
   );
 }
 
+interface MultiChoice {
+  id: number;
+  value: string;
+}
+
+interface DataTableColumnHeaderFilterableMultiProps<
+  TData,
+  TValue,
+> extends React.HTMLAttributes<HTMLDivElement> {
+  column: Column<TData, TValue>;
+  title: string;
+  paramName: string;
+  choices: MultiChoice[];
+}
+
 // 複数選択でフィルタできるカラムヘッダー
 export function DataTableColumnHeaderFilterableMulti<TData, TValue>({
   column,
@@ -107,19 +120,22 @@ export function DataTableColumnHeaderFilterableMulti<TData, TValue>({
   className,
   paramName,
   choices,
-}: DataTableColumnHeaderFilterableProps<TData, TValue>) {
+}: DataTableColumnHeaderFilterableMultiProps<TData, TValue>) {
   const [param, setParam] = useSearchParam(paramName);
 
   if (!column.getCanFilter()) {
     return <div className={cn(className)}>{title}</div>;
   }
 
-  const toggleChecked = (additionalValue: string) => {
+  const toggleChecked = (additionalValue: number) => {
     if (!additionalValue) {
       return;
     }
 
-    const currentValues = param.split(",");
+    const currentValues = param
+      .split(",")
+      .filter((p) => p !== "")
+      .map((p) => parseInt(p));
     // パラメータ変更
     if (currentValues.includes(additionalValue)) {
       setParam(currentValues.filter((v) => v !== additionalValue).join(","));
@@ -163,10 +179,13 @@ export function DataTableColumnHeaderFilterableMulti<TData, TValue>({
             {choices.map((choice) => (
               <DropdownMenuCheckboxItem
                 key={choice.id}
-                checked={param.split(",").includes(choice.value)}
-                onCheckedChange={() => toggleChecked(choice.value)}
+                checked={param
+                  .split(",")
+                  .map((p) => parseInt(p))
+                  .includes(choice.id)}
+                onCheckedChange={() => toggleChecked(choice.id)}
               >
-                {choice.label}
+                {choice.value}
               </DropdownMenuCheckboxItem>
             ))}
           </DropdownMenuGroup>

@@ -45,28 +45,28 @@ const StockDetailPage = async ({
   const evaluationItems = [
     {
       label: "売上",
-      score: stock.score?.sales,
+      score: stock.salesScore,
       icon: TrendingUpIcon,
       longLabel: "売上 (Sales)",
       description: "会社の総売り上げ。右肩上がりが理想。",
     },
     {
       label: "営業利益率",
-      score: stock.score?.operatingProfitMargin,
+      score: stock.operatingProfitMarginScore,
       icon: ChartLineIcon,
       longLabel: "営業利益率 (Operating Profit Margin)",
       description: "効率的に稼げているかどうか。常に10%以上が理想。",
     },
     {
       label: "EPS",
-      score: stock.score?.eps,
+      score: stock.epsScore,
       icon: ChartColumnBigIcon,
       longLabel: "EPS (Earnings Per Share)",
       description: "一株あたりの純利益。実質配当の上限。右肩上がりが理想。",
     },
     {
       label: "営業CF",
-      score: stock.score?.operatingCF,
+      score: stock.operatingCFScore,
       icon: CoinsIcon,
       longLabel: "営業CF (Operating Cash Flow)",
       description:
@@ -74,14 +74,14 @@ const StockDetailPage = async ({
     },
     {
       label: "一株配当",
-      score: stock.score?.dividendPerShare,
+      score: stock.dividendPerShareScore,
       icon: HandCoinsIcon,
       longLabel: "一株配当 (Dividend per Share)",
       description: "1株あたりの配当金。減配がないことが理想。",
     },
     {
       label: "配当性向",
-      score: stock.score?.payoutRatio,
+      score: stock.payoutRatioScore,
       icon: ChartPieIcon,
       longLabel: "配当性向 (Dividend Ratio)",
       description:
@@ -89,7 +89,7 @@ const StockDetailPage = async ({
     },
     {
       label: "自己資本比率",
-      score: stock.score?.equityRatio,
+      score: stock.equityRatioScore,
       icon: ShieldCheckIcon,
       longLabel: "自己資本比率 (Equity Ratio)",
       description:
@@ -97,7 +97,7 @@ const StockDetailPage = async ({
     },
     {
       label: "現金等",
-      score: stock.score?.cash,
+      score: stock.cashScore,
       icon: BanknoteIcon,
       longLabel: "現金等 (Cash and Cash Equivalents)",
       description:
@@ -164,7 +164,7 @@ const StockDetailPage = async ({
           <h3 className="text-lg font-bold mb-4 text-white uppercase tracking-widest">
             総合スコア
           </h3>
-          <CircleScoreGage score={stock.score?.total ?? null} maxScore={40} />
+          <CircleScoreGage score={stock.totalScore} maxScore={40} />
         </div>
 
         {/* 右側: 項目ごとのスコア */}

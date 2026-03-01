@@ -15,7 +15,9 @@ const supabaseKey =
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 if (!supabaseUrl || !supabaseKey) {
-  console.error(".env.local に Supabase の URL または Key が設定されていません。");
+  console.error(
+    ".env.local に Supabase の URL または Key が設定されていません。",
+  );
   process.exit(1);
 }
 
@@ -47,20 +49,19 @@ async function importData() {
 
   for (const rawRecord of records) {
     const record = rawRecord as CSVRecord;
+    const importRecord: Database["public"]["Tables"]["stocks"]["Insert"] = {
+      code: record.code,
+      name: record.name,
+      industry: parseInt(record.industry) || null,
+      market: parseInt(record.market) || null,
+      price: record.price || null,
+      dividend_yield: record.dividend_yield || null,
+    };
+
     // stocks に upsert
     const { error: historyError } = await supabase
       .from("stocks")
-      .upsert(
-        {
-          code: record.code,
-          name: record.name,
-          industry: record.industry || null,
-          market: record.market || null,
-          price: record.price || null,
-          dividend_yield: record.dividend_yield || null,
-        },
-        { onConflict: "code" },
-      );
+      .upsert(importRecord, { onConflict: "code" });
 
     if (historyError) {
       console.error(`${record.code} のインポートに失敗しました:`, historyError);
