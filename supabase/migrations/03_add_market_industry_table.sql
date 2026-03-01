@@ -102,7 +102,6 @@ create policy "Allow public read access on industries"
   on industries for select using (true);
 
 -- stocks_with_total_score ビューを再作成
--- TODO: SECURITY INVOKER を有効にする(https://supabase.com/docs/guides/database/database-advisors?queryGroups=lint&lint=0010_security_definer_view)
 create view stocks_with_total_score as
 select
   stocks.code           as code,

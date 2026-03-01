@@ -19,6 +19,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # 定数
+# TODO: デフォルトスコアは None が良いかもしれない
 DEFAULT_SCORE = 0
 
 # Supabase 接続
