@@ -41,6 +41,10 @@ const Home = () => {
         </p>
       </section>
 
+      {/* TODO: いますぐ株価最新化ボタン */}
+
+      {/* TODO: いますぐスコア再計算ボタン */}
+
       {/* TODO: CSVダウンロード機能を追加 */}
 
       <StockDashboard

@@ -21,6 +21,8 @@ export const Header = () => {
               銘柄一覧
             </Link>
 
+            {/* TODO: お気に入りリスト */}
+
             {/* TODO: 保有銘柄ページ */}
           </nav>
         </div>
