@@ -44,6 +44,7 @@ const SearchBox = ({ isLoading }: SearchBoxProps) => {
             onClick={(e) => {
               e.stopPropagation();
               setSearch("");
+              // TODO: フォーカスする
             }}
             className="p-1 hover:bg-gray-100 rounded transition-colors"
             aria-label="検索キーワードをクリア"

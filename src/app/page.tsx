@@ -26,7 +26,9 @@ const Home = () => {
         setStocks(data.stocks);
         setTotalCount(data.totalCount);
         setIsLoading(false);
-      });
+      })
+      // 500 エラーがある
+      .catch((e) => console.error(e));
     // TODO: エラー処理
   }, [searchParams]);
 
