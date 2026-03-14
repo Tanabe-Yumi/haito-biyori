@@ -65,7 +65,11 @@ NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 ```
 
-### 3. フロントエンドの起動
+### 3. DB設定
+
+`supabase/schema.sql` を実行し、DBの設定を実施
+
+### 4. フロントエンドの起動
 
 npm を使用してパッケージをインストールし、開発サーバーを起動
 
@@ -79,7 +83,7 @@ npm run dev
 
 起動後、ブラウザで [http://localhost:3000](http://localhost:3000) にアクセスするとアプリケーションを確認できます。
 
-### 4. (任意) 初期データの投入
+### 5. (任意) 初期データの投入
 
 Supabaseへ初期データを投入
 
@@ -96,7 +100,7 @@ npx tsx scripts/import_financial_history.ts
 
 ※「銘柄データ」「財務履歴データ」は手元のデータからのインポートのみ対応しています。システムでの収集は行いません。
 
-### 5. (任意) Pythonデータ収集バッチの実行
+### 6. (任意) Pythonデータ収集バッチの実行
 
 データ収集・分析を行うPythonスクリプトを実行
 
