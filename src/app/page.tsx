@@ -26,7 +26,9 @@ const Home = () => {
         setStocks(data.stocks);
         setTotalCount(data.totalCount);
         setIsLoading(false);
-      });
+      })
+      // 500 エラーがある
+      .catch((e) => console.error(e));
     // TODO: エラー処理
   }, [searchParams]);
 
@@ -44,8 +46,6 @@ const Home = () => {
       {/* TODO: いますぐ株価最新化ボタン */}
 
       {/* TODO: いますぐスコア再計算ボタン */}
-
-      {/* TODO: CSVダウンロード機能を追加 */}
 
       <StockDashboard
         stocks={stocks}

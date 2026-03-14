@@ -3,6 +3,7 @@ import {
   StockWithTotalScore,
   StockWithScores,
   FinancialStatement,
+  StockPage,
 } from "@/types/stock";
 import { Market } from "@/types/market";
 import { Industry } from "@/types/industry";
@@ -10,13 +11,6 @@ import { Industry } from "@/types/industry";
 // TODO: エラーハンドリング
 
 // TODO: npx supabase xxx
-
-// 銘柄リストと総数
-// TODO: types/ 側で定義
-export interface StockPage {
-  stocks: StockWithTotalScore[];
-  totalCount: number;
-}
 
 // 基本データと合計スコアを取得
 // フィルターやページネーションが可能

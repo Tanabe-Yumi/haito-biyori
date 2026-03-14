@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { getStockWithScoresById, getFinancialHistoryByCode } from "@/lib/api";
 import { formatDate } from "@/lib/formatDate";
-import { HistoricalChart } from "@/components/HistoricalChart";
+import { HistoricalChartTabs } from "@/components/HistoricalChartTabs";
 import { CircleScoreGage } from "@/components/CircleScoreGage";
 import { HoverInfoCard } from "@/components/HoverInfoCard";
 import {
@@ -13,7 +13,6 @@ import {
   Building2Icon,
   ChartColumnBigIcon,
   ChartLineIcon,
-  ChartNoAxesCombinedIcon,
   ChartPieIcon,
   CoinsIcon,
   HandCoinsIcon,
@@ -22,6 +21,8 @@ import {
   TrendingUpIcon,
 } from "lucide-react";
 import Link from "next/link";
+
+// TODO: ブラウザのタブのタイトルを変える
 
 const StockDetailPage = async ({
   params,
@@ -134,6 +135,9 @@ const StockDetailPage = async ({
             <h2 className="text-3xl font-bold">{stock.name}</h2>
             {/* TODO: 企業公式サイトへのリンク */}
           </div>
+          {/* TODO: インカム日和バッチをつける(天気で表す？) */}
+
+          {/* TODO: お気に入り登録ボタン */}
         </div>
 
         <div className="flex items-center gap-6">
@@ -212,17 +216,7 @@ const StockDetailPage = async ({
 
       {/* 業績グラフ */}
       <div className="p-6 md:p-8 bg-white rounded-2xl shadow-sm border border-emerald-100 overflow-hidden">
-        <h3 className="text-lg font-bold text-neutral-800 mb-6 flex items-center gap-2 border-b border-gray-100 pb-4">
-          <ChartNoAxesCombinedIcon className="text-emerald-600 w-5 h-5" />
-          業績推移
-        </h3>
-        {!!history?.length ? (
-          <HistoricalChart history={history} />
-        ) : (
-          <p className="text-center text-muted-foreground">
-            データがありません
-          </p>
-        )}
+        <HistoricalChartTabs history={history ?? []} />
       </div>
 
       {/* 最終更新日 */}
