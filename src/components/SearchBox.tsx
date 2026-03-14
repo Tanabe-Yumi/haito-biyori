@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { LoaderIcon, SearchIcon, XIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,7 @@ interface SearchBoxProps {
 const SearchBox = ({ isLoading }: SearchBoxProps) => {
   const [search, setSearch] = useState("");
   const [query, setQuery] = useSearchParam("search");
+  const searchRef = useRef<HTMLInputElement>(null);
 
   const handleSubmit = (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -28,6 +29,7 @@ const SearchBox = ({ isLoading }: SearchBoxProps) => {
         <InputGroupInput
           placeholder="銘柄名やコードで検索..."
           value={search}
+          ref={searchRef}
           onChange={(e) => setSearch(e.target.value)}
           disabled={isLoading}
         />
@@ -44,7 +46,7 @@ const SearchBox = ({ isLoading }: SearchBoxProps) => {
             onClick={(e) => {
               e.stopPropagation();
               setSearch("");
-              // TODO: フォーカスする
+              searchRef.current?.focus();
             }}
             className="p-1 hover:bg-gray-100 rounded transition-colors"
             aria-label="検索キーワードをクリア"
