@@ -12,6 +12,26 @@ import { Industry } from "@/types/industry";
 
 // TODO: npx supabase xxx
 
+// コードと名前を取得
+// タブ名変更用
+export async function getStockNameByCode(
+  code: string,
+): Promise<{ name: string }> {
+  const { data, error } = await supabase
+    .from("stocks")
+    .select("name")
+    .eq("code", code);
+
+  if (error || !data) {
+    console.error("Error fetching stock:", error);
+    throw error;
+  }
+
+  return {
+    name: data[0].name,
+  };
+}
+
 // 基本データと合計スコアを取得
 // フィルターやページネーションが可能
 export async function getStocksWithTotalScore(
@@ -97,7 +117,7 @@ export async function getStocksWithTotalScore(
 }
 
 // 引数のコードに一致する銘柄の、基本データとスコアを取得
-export async function getStockWithScoresById(
+export async function getStockWithScoresByCode(
   code: string,
 ): Promise<StockWithScores> {
   const { data, error } = await supabase
@@ -169,7 +189,7 @@ export async function getMarkets(): Promise<Market[]> {
   const { data, error } = await supabase.from("markets").select("*");
 
   if (error || !data) {
-    console.error("Error fetching history:", error);
+    console.error("Error fetching market:", error);
     throw error;
   }
 
@@ -188,7 +208,7 @@ export async function getIndustries(): Promise<Industry[]> {
   const { data, error } = await supabase.from("industries").select("*");
 
   if (error || !data) {
-    console.error("Error fetching history:", error);
+    console.error("Error fetching industry:", error);
     throw error;
   }
 

@@ -7,6 +7,13 @@ import numpy as np
 from scipy import stats
 from supabase import create_client, Client
 
+# TODO: スコアリングロジックの改修
+# - データが1年や数年しかない場合にスコアが高くなってしまう
+# - 営業利益率のスコアが良すぎる（直近のデータが良ければ良いスコアになっている気がする）
+# - 銀行の場合の営業利益率調整
+# - 特定のクエリが失敗??
+#   - ?page=2&rows=25&yield=3.5&industry=4
+
 # 環境変数の読み込み
 load_dotenv('../.env.local')
 

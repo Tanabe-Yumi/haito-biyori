@@ -125,14 +125,10 @@ export const columns = (
         />
       ),
       cell: ({ row }) => {
-        // TODO: デフォルトを 3.5 か 3.75 にする
+        // TODO: デフォルトを 3.5 にする
         const yieldVal = row.getValue("dividendYield") as number | undefined;
         if (!yieldVal) return <div className="text-right px-4">-</div>;
-        return (
-          <div className="text-right font-bold text-emerald-600 px-4">
-            {yieldVal}%
-          </div>
-        );
+        return <div className="text-right font-medium px-4">{yieldVal}%</div>;
       },
     },
     {
@@ -152,7 +148,9 @@ export const columns = (
         const score = row.getValue("totalScore") as string;
         if (!score) return <div className="text-center px-4">-</div>;
         return (
-          <div className="text-center font-black text-lg px-4">{score}</div>
+          <div className="text-center font-black text-lg text-emerald-600 px-4">
+            {score}
+          </div>
         );
       },
       accessorFn: (row) => row.totalScore,
