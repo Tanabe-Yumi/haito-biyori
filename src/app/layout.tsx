@@ -19,10 +19,10 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    template: "%s | いんかむ日和",
-    default: "いんかむ日和",
+    template: "%s | 配当びより",
+    default: "配当びより",
   },
-  description: "日本高配当株の分析アプリ",
+  description: "日本の高配当株投資をサポート",
 };
 
 export default function RootLayout({
