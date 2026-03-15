@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, M_PLUS_1p } from "next/font/google";
 import { Suspense } from "react";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import "./globals.css";
@@ -15,6 +15,13 @@ const geistSans = Geist({
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+});
+
+const mPlus1p = M_PLUS_1p({
+  weight: "400",
+  style: "normal",
+  subsets: ["latin"],
+  variable: "--font-m-plus-1p",
 });
 
 export const metadata: Metadata = {
@@ -38,9 +45,10 @@ export default function RootLayout({
     <html lang="ja" suppressHydrationWarning>
       <body
         className={cn(
-          "min-h-screen bg-background font-sans antialiased flex flex-col",
+          "min-h-screen bg-background antialiased flex flex-col",
           geistSans.variable,
           geistMono.variable,
+          mPlus1p.className,
         )}
       >
         <ThemeProvider

@@ -6,6 +6,7 @@ import {
   getFinancialHistoryByCode,
   getStockNameByCode,
 } from "@/lib/api";
+import { cn } from "@/lib/utils";
 import { formatDate } from "@/lib/formatDate";
 import { HistoricalChartTabs } from "@/components/HistoricalChartTabs";
 import { CircleScoreGage } from "@/components/CircleScoreGage";
@@ -161,7 +162,13 @@ const StockDetailPage = async ({ params }: StockDetailPageProps) => {
             <p className="text-sm text-muted-foreground font-medium">
               配当利回り
             </p>
-            <p className="text-2xl font-bold text-right text-emerald-700 dark:text-emerald-500">
+            <p
+              className={cn(
+                "text-2xl font-bold text-right",
+                (stock.dividendYield ?? 0) >= 3.75 &&
+                  "text-emerald-700 dark:text-emerald-500",
+              )}
+            >
               {stock.dividendYield ?? "- "}%
             </p>
           </div>
@@ -190,7 +197,7 @@ const StockDetailPage = async ({ params }: StockDetailPageProps) => {
             {evaluationItems.map((item, index) => (
               <div key={index} className="space-y-1.5">
                 <div className="flex justify-between items-center text-sm">
-                  <span className="text-muted-foreground font-medium flex items-center gap-2">
+                  <span className="text-muted-foreground font-bold flex items-center gap-2">
                     <span className="p-1 bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 rounded">
                       {item.icon ? (
                         <item.icon className="size-4" />
