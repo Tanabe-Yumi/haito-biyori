@@ -11,15 +11,15 @@ import yfinance as yf
 load_dotenv('../.env.local')
 
 # ロガー設定
-logging.basicConfig(
-	level=logging.INFO,
-	format='%(asctime)s [%(levelname)s] %(message)s',
-	datefmt='%Y-%m-%d %H:%M:%S',
-)
-logger = logging.getLogger(__name__)
+# logging.basicConfig(
+# 	level=logging.INFO,
+# 	format='%(asctime)s [%(levelname)s] %(message)s',
+# 	datefmt='%Y-%m-%d %H:%M:%S',
+# )
+# logger = logging.getLogger(__name__)
 
 # FutureWarning を無視
-warnings.simplefilter('ignore', FutureWarning)
+# warnings.simplefilter('ignore', FutureWarning)
 
 # Supabase 接続
 supabase_url = os.getenv('NEXT_PUBLIC_SUPABASE_URL')
@@ -29,11 +29,11 @@ if not supabase_url or not supabase_key:
 	missing = []
 	if not supabase_url: missing.append("NEXT_PUBLIC_SUPABASE_URL")
 	if not supabase_key: missing.append("SUPABASE_SERVICE_ROLE_KEY")
-	logger.error(f"Supabase環境変数が設定されていません: {', '.join(missing)}")
+	print(f"Supabase環境変数が設定されていません: {', '.join(missing)}")
 	sys.exit(1)
 
 supabase: Client = create_client(supabase_url, supabase_key)
-logger.info(f"Supabase接続成功: {supabase_url}")
+print(f"データベース接続成功")
 
 # Supabase から銘柄リストを取得
 def fetch_stocks_from_db():
@@ -50,20 +50,20 @@ def fetch_stocks_from_db():
 				break
 				
 			stocks.extend(data)
-			logger.info(f"銘柄リスト取得中: {len(data)}件 (合計: {len(stocks)}件)")
+			# print(f"銘柄リスト取得中: {len(data)}件 (合計: {len(stocks)}件)")
 			
 			if len(data) < batch_size:
 				break
 				
 			start += batch_size
 			
-		logger.info(f"銘柄リスト取得完了: {len(stocks)}件")
+		print(f"銘柄リスト取得完了: {len(stocks)}件")
 		return stocks
 	except Exception as e:
-		logger.error(f"銘柄リスト取得エラー: {e}")
+		print(f"銘柄リスト取得エラー: {e}")
 		# エラーが発生しても、それまでに取得できたデータを返す
 		if stocks:
-			logger.warning(f"一部の銘柄のみ取得しました: {len(stocks)}件")
+			print(f"一部の銘柄のみ取得しました: {len(stocks)}件")
 			return stocks
 		return []
 
@@ -82,22 +82,22 @@ def update_stock_price(code: str, name: str, price: float, dividend_yield: float
 		}).eq('code', code).execute()
 		
 		msg = f"✓ {name} ({code}): 株価: {price_formated}円, 利回り: {dividend_yield_formated}%"
-		logger.info(msg)
+		print(msg)
 		return True
 	except Exception as e:
-		logger.error(f"✗ {name} ({code}): 更新エラー - {e}")
+		print(f"✗ {name} ({code}): 更新エラー - {e}")
 		return False
 
 def main():
-	logger.info("=" * 60)
-	logger.info("株価・配当利回り取得開始")
-	logger.info("=" * 60)
+	# logger.info("=" * 60)
+	# logger.info("株価・配当利回り取得開始")
+	# logger.info("=" * 60)
 
 	# Supabaseから銘柄リストを取得
 	stocks = fetch_stocks_from_db()
 
 	if not stocks:
-		logger.warning("取得する銘柄がありません")
+		print("取得する銘柄がありません")
 		return
 
 	success_count = 0
@@ -107,7 +107,7 @@ def main():
 		code = stock['code']
 		name = stock['name']
 		
-		logger.info(f"[{idx}/{len(stocks)}] 処理中: {name} ({code})")
+		print(f"[{idx}/{len(stocks)}] 処理中: {name} ({code})")
 		
 		try:
 			# 株式情報を取得
@@ -127,7 +127,7 @@ def main():
 			dividend_yield = info.get('dividendYield')
 
 			if price is None and dividend_yield is None:
-				logger.warning(f"  ⚠ 取得失敗")
+				print(f"⚠ 取得失敗")
 				error_count += 1
 				continue
 			
@@ -138,15 +138,15 @@ def main():
 				error_count += 1
 						
 		except Exception as e:
-			logger.error(f"  ✗ エラー: {e}")
+			print(f"✗ エラー: {e}")
 			error_count += 1
 		
 		# API制限対策
 		time.sleep(2)
 	
-	logger.info("[Summary] " + "=" * 50)
-	logger.info(f"成功: {success_count}件, エラー: {error_count}件")
-	logger.info("=" * 60)
+	print("[Summary] " + "=" * 50)
+	print(f"成功: {success_count}件, エラー: {error_count}件")
+	print("=" * 60)
 
 if __name__ == "__main__":
 	main()
