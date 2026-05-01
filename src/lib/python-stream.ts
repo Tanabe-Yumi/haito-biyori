@@ -35,7 +35,7 @@ export function createPythonStreamHandler(scriptName: string) {
     return new ReadableStream({
       // start: ReadableStream インスタンスが作成されたときに一度だけ実行
       start(controller) {
-        const pythonPath = path.join(process.cwd(), "python/venv/bin/python");
+        const pythonPath = path.join(process.cwd(), "python", "venv", "bin", "python");
         const scriptPath = path.join(process.cwd(), `python/${scriptName}`);
 
         // spawn: イベント駆動型の子プロセス起動
