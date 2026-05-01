@@ -43,10 +43,6 @@ const Home = () => {
         </p>
       </section>
 
-      {/* TODO: いますぐ株価最新化ボタン */}
-
-      {/* TODO: いますぐスコア再計算ボタン */}
-
       <StockDashboard
         stocks={stocks}
         total={totalCount}
