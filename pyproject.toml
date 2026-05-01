@@ -1,0 +1,16 @@
+[tool.ruff]
+line-length = 88
+target-version = "py311"
+
+# pythonフォルダだけ対象にする
+src = ["python"]
+
+# 除外する
+exclude = ["node_modules", ".git"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
