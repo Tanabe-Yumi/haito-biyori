@@ -16,7 +16,7 @@ import {
 import { Progress } from "@/components/ui/progress";
 
 const FetchStockPricesButton = () => {
-  const endpoint = "/api/exec";
+  const endpoint = "/api/exec/fetch-stocks";
   const [progress, setProgress] = useState(0);
   const [logs, setLogs] = useState<string[]>([]);
   const [statusMessage, setStatusMessage] = useState("準備中...");
