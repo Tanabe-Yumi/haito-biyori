@@ -1,152 +1,149 @@
-import os
+import logging
 import sys
 import time
-import logging
-import warnings
-from dotenv import load_dotenv
-from supabase import create_client, Client
+
 import yfinance as yf
 
-# 環境変数の読み込み
-load_dotenv('../.env.local')
+# common モジュールのインポート
+import common
+from common import (
+    connect_supabase,
+    fetch_stocks_from_db,
+    load_env,
+    make_log_decorator,
+    send_frontend_log,
+    send_frontend_progress,
+    send_frontend_status,
+)
 
-# ロガー設定
+###################
+# ログ設定
+###################
+
 logging.basicConfig(
-	level=logging.INFO,
-	format='%(asctime)s [%(levelname)s] %(message)s',
-	datefmt='%Y-%m-%d %H:%M:%S',
+    level=logging.INFO,
+    filename="python/logs/fetchStockPrices.log",
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
 )
 logger = logging.getLogger(__name__)
+log_call = make_log_decorator(logger)
 
-# FutureWarning を無視
-warnings.simplefilter('ignore', FutureWarning)
+###################
+# functions
+###################
 
-# Supabase 接続
-supabase_url = os.getenv('NEXT_PUBLIC_SUPABASE_URL')
-supabase_key = os.getenv('SUPABASE_SERVICE_ROLE_KEY')
 
-if not supabase_url or not supabase_key:
-	missing = []
-	if not supabase_url: missing.append("NEXT_PUBLIC_SUPABASE_URL")
-	if not supabase_key: missing.append("SUPABASE_SERVICE_ROLE_KEY")
-	logger.error(f"Supabase環境変数が設定されていません: {', '.join(missing)}")
-	sys.exit(1)
+def update_stock_price(
+    supabase, code: str, name: str, price: float, dividend_yield: float
+):
+    """銘柄情報をDBに保存"""
+    try:
+        # フォーマット
+        price_formated = int(price) if price else None
+        dividend_yield_formated = (
+            "{:.2f}".format(dividend_yield) if dividend_yield else None
+        )
 
-supabase: Client = create_client(supabase_url, supabase_key)
-logger.info(f"Supabase接続成功: {supabase_url}")
+        # DB更新
+        # None の場合は NULL が格納される
+        supabase.table("stocks").update(
+            {"price": price_formated, "dividend_yield": dividend_yield_formated}
+        ).eq("code", code).execute()
+        logger.info(
+            f"DB更新成功: {code} {name} (株価: {price}, 配当利回り: {dividend_yield})"
+        )
+        return True
+    except Exception as e:
+        logger.warning(f"DB更新エラー: {code} {name} ({e})")
+        return False
 
-# Supabase から銘柄リストを取得
-def fetch_stocks_from_db():
-	stocks = []
-	start = 0
-	batch_size = 1000
-	
-	try:
-		while True:
-			response = supabase.table('stocks').select('code, name').range(start, start + batch_size - 1).execute()
-			data = response.data
-			
-			if not data:
-				break
-				
-			stocks.extend(data)
-			logger.info(f"銘柄リスト取得中: {len(data)}件 (合計: {len(stocks)}件)")
-			
-			if len(data) < batch_size:
-				break
-				
-			start += batch_size
-			
-		logger.info(f"銘柄リスト取得完了: {len(stocks)}件")
-		return stocks
-	except Exception as e:
-		logger.error(f"銘柄リスト取得エラー: {e}")
-		# エラーが発生しても、それまでに取得できたデータを返す
-		if stocks:
-			logger.warning(f"一部の銘柄のみ取得しました: {len(stocks)}件")
-			return stocks
-		return []
 
-# Supabase の stocks テーブルを更新
-def update_stock_price(code: str, name: str, price: float, dividend_yield: float):
-	try:
-		# フォーマット
-		price_formated = int(price) if price else None
-		dividend_yield_formated = "{:.2f}".format(dividend_yield) if dividend_yield else None
-		
-		# DB 更新
-		# None の場合は NULL が格納される
-		response = supabase.table('stocks').update({
-			'price': price_formated,
-			'dividend_yield': dividend_yield_formated,
-		}).eq('code', code).execute()
-		
-		msg = f"✓ {name} ({code}): 株価: {price_formated}円, 利回り: {dividend_yield_formated}%"
-		logger.info(msg)
-		return True
-	except Exception as e:
-		logger.error(f"✗ {name} ({code}): 更新エラー - {e}")
-		return False
+@log_call
+def fetchStockPrices(supabase):
+    # 銘柄リストを取得
+    stocks = fetch_stocks_from_db(supabase)
+    if not stocks:
+        send_frontend_status("更新する銘柄がありません")
+        logger.warning("更新する銘柄が0件. 処理を終了")
+        return
 
-def main():
-	logger.info("=" * 60)
-	logger.info("株価・配当利回り取得開始")
-	logger.info("=" * 60)
+    total = len(stocks)
+    success_count = 0
+    fail_count = 0
 
-	# Supabaseから銘柄リストを取得
-	stocks = fetch_stocks_from_db()
+    for idx, stock in enumerate(stocks, 1):
+        # 中止信号があれば中止
+        if common.stopRequested:
+            logger.info("中止信号を取得. 処理を終了")
+            break
 
-	if not stocks:
-		logger.warning("取得する銘柄がありません")
-		return
+        code = stock["code"]
+        name = stock["name"]
 
-	success_count = 0
-	error_count = 0
+        # 処理中の情報
+        send_frontend_progress(idx, total, code, name)
 
-	for idx, stock in enumerate(stocks, 1):
-		code = stock['code']
-		name = stock['name']
-		
-		logger.info(f"[{idx}/{len(stocks)}] 処理中: {name} ({code})")
-		
-		try:
-			# 株式情報を取得
-			ticker = yf.Ticker(f"{code}.T")
-			info = ticker.info
-			
-			# 株価(price) 取得
-			price = info.get('currentPrice')
-			# currentPrice が取れない場合は fast_info の last_price を取得
-			if price is None:
-				try:
-					price = ticker.fast_info.get('lastPrice')
-				except:
-					pass
+        try:
+            # 銘柄情報を取得
+            ticker = yf.Ticker(f"{code}.T")
+            info = ticker.info
 
-			# 配当利回り(dividendYield) 取得
-			dividend_yield = info.get('dividendYield')
+            # 株価
+            price = info.get("currentPrice")
+            # currentPrice が取れない場合は fast_info の last_price を使用
+            if price is None:
+                try:
+                    price = ticker.fast_info.get("lastPrice")
+                except Exception:
+                    pass
 
-			if price is None and dividend_yield is None:
-				logger.warning(f"  ⚠ 取得失敗")
-				error_count += 1
-				continue
-			
-			# Supabaseに保存
-			if update_stock_price(code, name, price, dividend_yield):
-				success_count += 1
-			else:
-				error_count += 1
-						
-		except Exception as e:
-			logger.error(f"  ✗ エラー: {e}")
-			error_count += 1
-		
-		# API制限対策
-		time.sleep(2)
-	
-	logger.info("[Summary] " + "=" * 50)
-	logger.info(f"成功: {success_count}件, エラー: {error_count}件")
-	logger.info("=" * 60)
+            # 配当利回り
+            dividend_yield = info.get("dividendYield")
+
+            # 株価と配当利回りの両方が取得できない場合はDB更新せず終了
+            if price is None and dividend_yield is None:
+                send_frontend_log(f"✗ 失敗: {name} (取得失敗)")
+                logger.warning(f"yfinance取得失敗: {code} {name}")
+                fail_count += 1
+                continue
+
+            # DB保存
+            if update_stock_price(supabase, code, name, price, dividend_yield):
+                send_frontend_log(
+                    f"✓ 成功: {name} (株価: {int(price)}, 配当利回り: {dividend_yield})"
+                )
+                success_count += 1
+            else:
+                send_frontend_log(f"✗ 失敗: {name} (DB更新失敗)")
+                fail_count += 1
+
+        except Exception as e:
+            send_frontend_log(f"✗ 失敗: {name} ({e})")
+            logger.error(f"取得/更新失敗: {code} {name} ({e})")
+            fail_count += 1
+
+        # API制限対策
+        time.sleep(2)
+
+    # 結果表示
+    send_frontend_status(
+        f"[結果] {total}件中 成功: {success_count}件, 失敗: {fail_count}件"
+    )
+    logger.info(
+        f"処理結果: {total}件中 成功: {success_count}件, エラー: {fail_count}件)"
+    )
+
+
+###################
+# main process
+###################
 
 if __name__ == "__main__":
-	main()
+    # 環境変数読み込み
+    load_env()
+    # supabase 接続
+    supabase = connect_supabase()
+    # 株価取得
+    fetchStockPrices(supabase)
+    sys.exit()

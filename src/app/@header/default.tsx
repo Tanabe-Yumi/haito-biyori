@@ -1,5 +1,7 @@
 import Link from "next/link";
-import { BarChart3, SunIcon } from "lucide-react";
+import { SunIcon } from "lucide-react";
+
+import { pages } from "@/constants/page";
 
 const Header = () => {
   return (
@@ -13,17 +15,16 @@ const Header = () => {
             </span>
           </Link>
           <nav className="flex gap-6">
-            <Link
-              href="/"
-              className="flex items-center text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
-            >
-              <BarChart3 className="mr-2 h-4 w-4" />
-              銘柄一覧
-            </Link>
-
-            {/* TODO: お気に入りリスト */}
-
-            {/* TODO: 保有銘柄ページ */}
+            {pages.map((p) => (
+              <Link
+                key={p.label}
+                href={p.href}
+                className="flex items-center text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
+              >
+                <p.icon className="mr-2 h-4 w-4" />
+                {p.label}
+              </Link>
+            ))}
           </nav>
         </div>
       </div>
