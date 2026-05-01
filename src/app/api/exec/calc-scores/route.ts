@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createPythonStreamHandler, sseResponse } from "@/lib/python-stream";
 
-const handler = createPythonStreamHandler("fetchStockPrices.py");
+const handler = createPythonStreamHandler("calculateScores.py");
 
 // python プロセス実行
 export async function GET() {

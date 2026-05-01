@@ -15,8 +15,19 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Progress } from "@/components/ui/progress";
 
-const FetchStockPricesButton = () => {
-  const endpoint = "/api/exec/fetch-stocks";
+const icons = {
+  refresh: RefreshCwIcon,
+};
+
+export interface AdminExecButtonProps {
+  action: "fetch-stocks" | "calc-scores";
+  title: string;
+  icon: keyof typeof icons;
+}
+
+const AdminExecButton = ({ action, title, icon }: AdminExecButtonProps) => {
+  const endpoint = "/api/exec/" + action;
+  const Icon = icons[icon];
   const [progress, setProgress] = useState(0);
   const [logs, setLogs] = useState<string[]>([]);
   const [statusMessage, setStatusMessage] = useState("準備中...");
@@ -34,7 +45,7 @@ const FetchStockPricesButton = () => {
 
     const decoder = new TextDecoder();
     const res = await fetch(endpoint);
-    // サーバーから送られてくるデータをリアルタイムで受け取れるようにする(getReader)
+    // サーバーのデータをリアルタイムかつ継続的に受け取り
     const reader = res.body?.getReader();
     if (!reader) return;
 
@@ -63,18 +74,18 @@ const FetchStockPricesButton = () => {
           console.log(dataObj);
 
           switch (dataObj.type) {
-            // メッセージをそのまま表示
+            // ダイアログタイトルの下に表示
             case "status":
               setStatusMessage(dataObj.message);
               break;
-            // 進捗を更新
+            // 進捗。ダイアログタイトルの下に表示
             case "progress":
               setStatusMessage(
                 `処理中(${dataObj.current} / ${dataObj.total}): ${dataObj.code} ${dataObj.name}`,
               );
               setProgress((dataObj.current / dataObj.total) * 100);
               break;
-            // ログメッセージ追加
+            // プログレスバー下のスクロールエリアに表示
             case "log":
               setLogs((prev) => [dataObj.message, ...prev]);
               break;
@@ -103,13 +114,13 @@ const FetchStockPricesButton = () => {
           className="w-full sm:w-auto flex items-center gap-2 font-semibold bg-transparent text-emerald-600 border border-emerald-600 hover:bg-muted"
           onClick={handleRefresh}
         >
-          <RefreshCwIcon className="w-4 h-4" />
-          株価・配当利回り更新
+          <Icon className="w-4 h-4" />
+          {title}
         </Button>
       </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>株価・配当利回り更新</AlertDialogTitle>
+          <AlertDialogTitle>{title}</AlertDialogTitle>
         </AlertDialogHeader>
         <div className="flex flex-col justify-center items-start gap-3">
           <div className="">{statusMessage}</div>
@@ -143,4 +154,4 @@ const FetchStockPricesButton = () => {
   );
 };
 
-export default FetchStockPricesButton;
+export default AdminExecButton;
