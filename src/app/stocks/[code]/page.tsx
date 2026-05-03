@@ -45,7 +45,8 @@ const StockDetailPage = async ({ params }: StockDetailPageProps) => {
   const stock = await getStockWithScoresByCode(code).catch((e) =>
     console.error(e),
   );
-  const history = await getFinancialHistoryByCode(code).catch((e) =>
+  // TODO: 直近10件か全件か選択できるようにする
+  const history = await getFinancialHistoryByCode(code, 10).catch((e) =>
     console.error(e),
   );
 

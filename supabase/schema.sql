@@ -107,7 +107,7 @@ create table if not exists financial_history (
   cash                   numeric,
   created_at             timestamptz not null default now(),
 
-  -- stock/year/month ごとにユニークなレコードとする
+  -- code/year/month ごとにユニークなレコードとする
   unique(code, year, month)
 );
 

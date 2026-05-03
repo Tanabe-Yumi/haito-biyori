@@ -150,22 +150,31 @@ export async function getStockWithScoresByCode(
   };
 }
 
-// 引数のコードに一致する銘柄の、過去の決算データを取得
+// 決算データを取得
 export async function getFinancialHistoryByCode(
   code: string,
+  limit?: number,
 ): Promise<FinancialStatement[]> {
-  const { data, error } = await supabase
+  let query = supabase
     .from("financial_history")
     .select("*")
     .eq("code", code)
-    .order("year", { ascending: true });
+    .order("year", { ascending: false });
+
+  // 最大件数を設定
+  if (limit !== undefined && limit > 0) {
+    query = query.limit(limit);
+  }
+
+  const { data, error } = await query;
 
   if (error || !data) {
     console.error("Error fetching history:", error);
     throw error;
   }
 
-  const financialHistory: FinancialStatement[] = data.map((f) => {
+  // 昇順にソートして返却
+  const financialHistory: FinancialStatement[] = data.reverse().map((f) => {
     return {
       code: f.code,
       year: f.year,

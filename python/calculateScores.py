@@ -334,13 +334,13 @@ def calculateScores(supabase):
 
         try:
             # 決算情報を取得
-            # 各年度の決算データを年の昇順で取得
-            # TODO: 同年で複数の決算データがある場合の処理
+            # 直近10年分(降順で取得し後で並び替え)
             history = (
                 supabase.table("financial_history")
                 .select("*")
                 .eq("code", code)
-                .order("year", desc=False)
+                .order("year", desc=True)
+                .limit(10)
                 .execute()
                 .data
             )
@@ -349,7 +349,9 @@ def calculateScores(supabase):
                 logger.warning(f"✗ 決算データなし: {code} {name}")
                 fail_count += 1
                 continue
-            df = pd.DataFrame(history)
+
+            # 昇順にソート
+            df = pd.DataFrame(history).sort_values("year").reset_index(drop=True)
 
             # スコア算出
             scores = calculate_stock_score(df)
