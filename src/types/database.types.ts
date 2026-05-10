@@ -224,6 +224,13 @@ export type Database = {
             foreignKeyName: "fk_stocks_industry"
             columns: ["industry"]
             isOneToOne: false
+            referencedRelation: "stocks_with_scores"
+            referencedColumns: ["industry_id"]
+          },
+          {
+            foreignKeyName: "fk_stocks_industry"
+            columns: ["industry"]
+            isOneToOne: false
             referencedRelation: "stocks_with_total_score"
             referencedColumns: ["industry_id"]
           },
@@ -233,6 +240,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "markets"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_stocks_market"
+            columns: ["market"]
+            isOneToOne: false
+            referencedRelation: "stocks_with_scores"
+            referencedColumns: ["market_id"]
           },
           {
             foreignKeyName: "fk_stocks_market"
@@ -253,8 +267,10 @@ export type Database = {
           dividend_yield: number | null
           earnings_per_share_score: number | null
           equity_ratio_score: number | null
-          industry: string | null
-          market: string | null
+          industry_id: number | null
+          industry_name: string | null
+          market_id: number | null
+          market_name: string | null
           name: string | null
           operating_cash_flow_score: number | null
           operating_profit_margin_score: number | null

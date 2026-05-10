@@ -189,8 +189,10 @@ create view stocks_with_scores
 select
   stocks.code                    as code,
   stocks.name                    as name,
-  markets.name                   as market,
-  industries.name                as industry,
+  markets.id                     as market_id,
+  markets.name                   as market_name,
+  industries.id                  as industry_id,
+  industries.name                as industry_name,
   stocks.price                   as price,
   stocks.dividend_yield          as dividend_yield,
   stocks.updated_at              as updated_at,

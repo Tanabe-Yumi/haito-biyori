@@ -45,10 +45,16 @@ export interface StockWithScores extends Stock {
   cashScore: number | null;
 }
 
-// 銘柄リスト with 総銘柄数
+// 銘柄リスト（合計スコア） with 総銘柄数
 // ページネーション用
 export interface StockPage {
   stocks: StockWithTotalScore[];
+  totalCount: number;
+}
+
+// 銘柄リスト（全スコア） with 総銘柄数
+export interface StockScoreList {
+  stocks: StockWithScores[];
   totalCount: number;
 }
 

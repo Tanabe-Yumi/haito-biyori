@@ -4,6 +4,7 @@ import {
   StockWithScores,
   FinancialStatement,
   StockPage,
+  StockScoreList,
 } from "@/types/stock";
 import { Market } from "@/types/market";
 import { Industry } from "@/types/industry";
@@ -116,6 +117,82 @@ export async function getStocksWithTotalScore(
   return { stocks, totalCount: count ?? 0 };
 }
 
+// 基本データとスコアを取得
+// csv エクスポート用
+export async function getStocksWithScores(
+  search: string | null,
+  markets: number[] | null,
+  industries: number[] | null,
+  minDividendYield: number | null,
+  minScore: number | null,
+  page: number = 0,
+  rows: number = 10,
+): Promise<StockScoreList> {
+  const from = page * rows;
+  const to = from + rows - 1;
+
+  let query = supabase
+    .from("stocks_with_scores")
+    .select("*", { count: "exact" });
+
+  // 検索
+  if (search) {
+    query = query.textSearch("fts", search.split(/\s+/).join(" & "), {
+      config: "simple",
+    });
+  }
+
+  // 絞り込み
+  if (markets && markets.length !== 0) {
+    query = query.in("market_id", markets);
+  }
+  if (industries && industries.length !== 0) {
+    query = query.in("industry_id", industries);
+  }
+  if (minDividendYield) {
+    query = query.gte("dividend_yield", minDividendYield);
+  }
+  if (minScore) {
+    query = query.gte("total_score", minScore);
+  }
+
+  // ソートと範囲指定
+  query = query
+    .order("total_score", { ascending: false, nullsFirst: false })
+    .range(from, to);
+
+  const { data, error, count } = await query;
+
+  if (error || !data) {
+    console.error("Error fetching stocks:", error);
+    throw error;
+  }
+
+  // マッピング
+  const stocks: StockWithScores[] = data.map((s) => {
+    return {
+      code: s.code!,
+      name: s.name!,
+      industry: s.industry_name,
+      market: s.market_name,
+      price: s.price,
+      dividendYield: s.dividend_yield,
+      totalScore: s.total_score,
+      salesScore: s.sales_score,
+      operatingProfitMarginScore: s.operating_profit_margin_score,
+      epsScore: s.earnings_per_share_score,
+      operatingCFScore: s.operating_cash_flow_score,
+      dividendPerShareScore: s.dividend_per_share_score,
+      payoutRatioScore: s.payout_ratio_score,
+      equityRatioScore: s.equity_ratio_score,
+      cashScore: s.cash_score,
+      updatedAt: s.updated_at!,
+    };
+  });
+
+  return { stocks, totalCount: count ?? 0 };
+}
+
 // 引数のコードに一致する銘柄の、基本データとスコアを取得
 export async function getStockWithScoresByCode(
   code: string,
@@ -133,8 +210,8 @@ export async function getStockWithScoresByCode(
   return {
     code: data[0].code!,
     name: data[0].name!,
-    industry: data[0].industry,
-    market: data[0].market,
+    industry: data[0].industry_name,
+    market: data[0].market_name,
     price: data[0].price,
     dividendYield: data[0].dividend_yield,
     updatedAt: data[0].updated_at!,
