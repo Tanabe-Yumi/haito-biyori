@@ -1,16 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { DownloadIcon } from "lucide-react";
 
 import { StockWithTotalScore } from "@/types/stock";
 import { Market } from "@/types/market";
 import { Industry } from "@/types/industry";
 import { DataTable } from "@/components/DataTable";
 import { columns } from "@/components/StockTableColumns";
-import { Button } from "@/components/ui/button";
-import { downloadCsv } from "@/lib/downloadCsv";
-import { headers } from "@/constants/csvHeader";
 
 interface StockDashboardProps {
   stocks: StockWithTotalScore[];
@@ -56,17 +52,6 @@ export function StockDashboard({
         total={total}
         isLoading={isLoading}
       />
-
-      {/* CSVダウンロード */}
-      <div>
-        <Button
-          variant="secondary"
-          onClick={() => downloadCsv(headers, stocks)}
-        >
-          <DownloadIcon />
-          CSVダウンロード
-        </Button>
-      </div>
     </div>
   );
 }
