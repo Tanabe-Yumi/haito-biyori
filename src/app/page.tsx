@@ -2,7 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { toast } from "sonner";
+import { DownloadIcon } from "lucide-react";
+
 import { StockDashboard } from "@/components/StockDashboard";
+import { Button } from "@/components/ui/button";
+import { headers } from "@/constants/csvHeader";
+import { downloadCsv } from "@/lib/downloadCsv";
 import { StockWithTotalScore } from "@/types/stock";
 
 const Home = () => {
@@ -12,6 +18,8 @@ const Home = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [stocks, setStocks] = useState<StockWithTotalScore[]>([]);
   const [totalCount, setTotalCount] = useState(0);
+  // csv ダウンロード
+  const [isDownloading, setIsDownloading] = useState(false);
 
   const searchParams = useSearchParams();
 
@@ -32,6 +40,36 @@ const Home = () => {
     // TODO: エラー処理
   }, [searchParams]);
 
+  // クエリ条件に一致する銘柄をダウンロード
+  const handleDownloadCsv = () => {
+    setIsDownloading(true);
+    // toast でダウンロード状況を通知
+    toast.promise<string>(
+      () =>
+        new Promise((resolve, reject) => {
+          const allQueryParameters = searchParams.toString();
+          fetch(`${endpoint}/export?${allQueryParameters}`, {
+            method: "GET",
+          })
+            .then((res) => res.json())
+            .then((data) => {
+              downloadCsv(headers, data);
+              resolve("success");
+            })
+            .catch((e) => {
+              reject(e);
+            })
+            .finally(() => setIsDownloading(false));
+        }),
+      {
+        loading: "CSVダウンロードを準備中...",
+        success: "CSVダウンロードに成功しました",
+        error: (e) => `CSVダウンロードに失敗しました: ${e}`,
+        position: "bottom-right",
+      },
+    );
+  };
+
   return (
     <div className="space-y-8">
       <section className="space-y-4">
@@ -48,6 +86,15 @@ const Home = () => {
         total={totalCount}
         isLoading={isLoading}
       />
+
+      <Button
+        variant="secondary"
+        onClick={handleDownloadCsv}
+        disabled={isDownloading}
+      >
+        <DownloadIcon />
+        CSVダウンロード
+      </Button>
     </div>
   );
 };

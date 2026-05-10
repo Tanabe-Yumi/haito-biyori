@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import "./globals.css";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import { Toaster } from "@/components/ui/sonner";
 import { Loader } from "@/components/layout/Loader";
 import { cn } from "@/lib/utils";
 
@@ -67,6 +68,7 @@ export default function RootLayout({
             {footer}
           </NuqsAdapter>
         </ThemeProvider>
+        <Toaster />
       </body>
     </html>
   );
