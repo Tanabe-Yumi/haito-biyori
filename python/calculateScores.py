@@ -19,7 +19,6 @@ from common import (
 
 # TODO: スコアリングロジックの改修
 # - データが1年や数年しかない場合にスコアが高くなってしまう
-# - 営業利益率のスコアが良すぎる（直近のデータが良ければ良いスコアになっている気がする）
 # - 銀行の場合の営業利益率調整
 # - 特定のクエリが失敗??
 #   - ?page=2&rows=25&yield=3.5&industry=4
@@ -83,8 +82,6 @@ def calculate_normalized_slope(series):
 
 def calculate_ewma(series):
     """分析ロジック: 指数加重移動平均 (EWMA)"""
-
-    # NaNを除外
     clean_series = series.dropna()
     if clean_series.empty:
         return None
@@ -95,197 +92,214 @@ def calculate_ewma(series):
     return ewma_latest
 
 
-def calculate_minus_count(series):
-    """分析ロジック: マイナス回数を算出"""
-
-    # NaNを除外
-    clean_series = series.dropna()
-    if clean_series.empty:
+def calculate_cagr(series):
+    """分析ロジック: CAGR(年平均成長率)"""
+    clean = series.dropna()
+    if len(clean) < 2:
         return None
 
-    recent_10_years = clean_series.tail(10)
-    recent_15_years = clean_series.tail(15)
+    start = clean.iloc[0]
+    end = clean.iloc[-1]
+    n = len(clean) - 1
 
-    # マイナス回数（直近10年を重視）
-    return (recent_10_years < 0).sum() * 0.7 + (recent_15_years < 0).sum() * 0.3
+    if start <= 0:
+        return None
+
+    return (end / start) ** (1 / n) - 1
+
+
+def calculate_r2(series):
+    """分析ロジック: R^2(回帰直線/安定性)"""
+    clean = series.dropna()
+    if len(clean) < 3:
+        return None
+
+    x = np.arange(len(clean))
+    y = clean.values
+
+    slope, intercept, r_value, _, _ = stats.linregress(x, y)
+    return r_value**2
 
 
 def calculate_decrease_count(series):
-    """分析ロジック: 減少回数を算出"""
-
-    # NaNを除外
-    clean_series = series.dropna()
-    if clean_series.empty:
+    """分析ロジック: 減少回数"""
+    clean = series.dropna()
+    if len(clean) < 2:
         return None
 
-    # 減少回数
-    return (clean_series.diff() < 0).sum()
+    return (clean.diff() < 0).sum()
+
+
+def calculate_minus_count(series):
+    """分析ロジック: マイナス回数"""
+    clean = series.dropna()
+    if clean.empty:
+        return None
+
+    return (clean < 0).sum()
+
+
+def score_trend(series):
+    """スコアリングロジック: 傾向"""
+    cagr = calculate_cagr(series)
+    r2 = calculate_r2(series)
+    decrease = calculate_decrease_count(series)
+
+    if cagr is None or decrease is None:
+        return DEFAULT_SCORE
+    if cagr > 0 and decrease == 0 and (r2 is not None and r2 >= 0.85):
+        return 5
+    if cagr > 0 and decrease <= 2:
+        return 4
+    if -0.02 <= cagr <= 0.02:
+        return 3
+    if cagr < 0 or decrease >= 5:
+        return 2
+    return 1
 
 
 def score_sales(series):
     """スコアリングロジック: 売上"""
-
-    # TODO: 最初に return する条件を修正
-    if series.empty:
-        return DEFAULT_SCORE
-
-    slope = calculate_normalized_slope(series)
-
-    # スコア判定
-    if slope is None:
-        return DEFAULT_SCORE
-    if slope >= 0.95:
-        return 5
-    if slope >= 0.5:
-        return 4
-    if slope >= 0.1:
-        return 3
-    if slope >= -0.3:
-        return 2
-    return 1
+    return score_trend(series)
 
 
 def score_operating_profit_margin(series):
     """スコアリングロジック: 営業利益率"""
-    if series.empty:
+    clean = series.dropna()
+
+    if clean.empty:
         return DEFAULT_SCORE
 
-    ewma = calculate_ewma(series)
+    over_10_count = (clean >= 10).sum()
+    minus_count = calculate_minus_count(clean)
 
-    # スコア判定
-    if ewma is None:
-        return DEFAULT_SCORE
-    if ewma >= 10.0:
+    total = len(clean)
+    over_10_ratio = over_10_count / total
+    minus_ratio = minus_count / total
+
+    if over_10_ratio >= 0.95 and over_10_count > 5:
         return 5
-    if ewma >= 8.0:
+    if over_10_count >= 0.7:
         return 4
-    if ewma >= 7.0:
-        return 3
-    if ewma >= 5.0:
+    if minus_ratio >= 0.8:
+        return 1
+    if minus_ratio >= 0.5:
         return 2
-    return 1
+    return 3
 
 
 def score_eps(series):
     """スコアリングロジック: EPS"""
-    if series.empty:
-        return DEFAULT_SCORE
-
-    slope = calculate_normalized_slope(series)
-
-    if slope is None:
-        return DEFAULT_SCORE
-    if slope >= 0.95:
-        return 5
-    if slope >= 0.5:
-        return 4
-    if slope >= 0.1:
-        return 3
-    if slope >= -0.3:
-        return 2
-    return 1
+    return score_trend(series)
 
 
-def score_operating_cf(series):
+def score_operating_cf(series, operating_profit_series):
     """スコアリングロジック: 営業CF"""
-    if series.empty:
+    cf_minus = calculate_minus_count(series)
+
+    if cf_minus is None:
         return DEFAULT_SCORE
 
-    minus_count = calculate_minus_count(series)
+    cf_sum = series.dropna().sum()
+    op_sum = operating_profit_series.dropna().sum()
 
-    if minus_count is None:
-        return DEFAULT_SCORE
-    if minus_count == 0:
+    if cf_minus == 0 and cf_sum >= op_sum:
         return 5
-    if minus_count <= 1:
+    if cf_minus == 0:
         return 4
-    if minus_count <= 2:
+    if cf_minus <= 3:
         return 3
-    if minus_count <= 4:
+    if cf_minus <= 5:
         return 2
     return 1
 
 
 def score_dividend_per_share(series):
     """スコアリングロジック: 一株配当"""
-    if series.empty:
-        return DEFAULT_SCORE
+    decrease = calculate_decrease_count(series)
+    cagr = calculate_cagr(series)
 
-    decrease_count = calculate_decrease_count(series)
-
-    if decrease_count is None:
+    if decrease is None:
         return DEFAULT_SCORE
-    if decrease_count == 0:
+    if decrease == 0 and cagr is not None and cagr >= 0.03:
         return 5
-    if decrease_count <= 1:
+    if decrease == 0:
         return 4
-    if decrease_count <= 2:
+    if decrease <= 2 and (cagr is None or cagr >= -0.02):
         return 3
-    if decrease_count <= 3:
+    if decrease <= 4:
         return 2
     return 1
 
 
 def score_payout_ratio(series):
     """スコアリングロジック: 配当性向"""
-    if series.empty:
+    clean = series.dropna()
+
+    if clean.empty:
         return DEFAULT_SCORE
 
-    ewma = calculate_ewma(series)
-
-    if ewma is None:
-        return DEFAULT_SCORE
-    if ewma < 30:
+    valid = clean[(clean >= 0) & (clean <= 200)]
+    if valid.empty:
         return 1
-    if ewma <= 50:
+
+    # 理想
+    ideal_count = ((valid >= 30) & (valid <= 50)).sum()
+    # やや危険
+    warning_count = (
+        ((valid >= 20) & (valid < 30)) | ((valid > 50) & (valid <= 80))
+    ).sum()
+    # 危険
+    danger_count = ((valid < 20) | (valid > 80)).sum()
+
+    total = len(valid)
+    ideal_ratio = ideal_count / total
+    warning_ratio = warning_count / total
+    danger_ratio = danger_count / total
+
+    if ideal_ratio >= 0.95:
         return 5
-    if ewma <= 60:
+    if ideal_ratio >= 0.7:
         return 4
-    if ewma <= 70:
-        return 3
-    if ewma <= 80:
+    if danger_ratio >= 0.5:
+        return 1
+    if warning_ratio >= 0.5:
         return 2
-    return 1
+    if ideal_ratio >= 0.4:
+        return 3
+    return 2
 
 
 def score_equity_ratio(series):
     """スコアリングロジック: 自己資本比率"""
-    if series.empty:
+    clean = series.dropna()
+
+    if clean.empty:
         return DEFAULT_SCORE
 
-    ewma = calculate_ewma(series)
+    ewma = calculate_ewma(clean)
+    min_val = clean.min()
 
-    if ewma is None:
-        return DEFAULT_SCORE
-    if ewma >= 40.0:
+    # 40%以上だった年数
+    stable_count = (clean >= 40).sum()
+    stable_ratio = stable_count / len(clean)
+
+    if min_val < 20:
+        return 1
+    if ewma >= 70 and stable_ratio >= 0.9:
         return 5
-    if ewma >= 35.0:
+    if ewma >= 40 and stable_ratio >= 0.7:
         return 4
-    if ewma >= 30.0:
+    if ewma >= 30:
         return 3
-    if ewma >= 15.0:
+    if ewma >= 20:
         return 2
     return 1
 
 
 def score_cash(series):
     """スコアリングロジック: 現金"""
-    if series.empty:
-        return DEFAULT_SCORE
-
-    slope = calculate_normalized_slope(series)
-
-    if slope is None:
-        return DEFAULT_SCORE
-    if slope >= 0.2:
-        return 5
-    if slope >= 0.05:
-        return 4
-    if slope >= 0.0:
-        return 3
-    if slope >= -0.3:
-        return 2
-    return 1
+    return score_trend(series)
 
 
 def calculate_stock_score(df):
@@ -296,7 +310,9 @@ def calculate_stock_score(df):
             df["operating_profit_margin"]
         ),
         "earnings_per_share": score_eps(df["earnings_per_share"]),
-        "operating_cash_flow": score_operating_cf(df["operating_cash_flow"]),
+        "operating_cash_flow": score_operating_cf(
+            df["operating_cash_flow"], df["operating_profit"]
+        ),
         "dividend_per_share": score_dividend_per_share(df["dividend_per_share"]),
         "payout_ratio": score_payout_ratio(df["payout_ratio"]),
         "equity_ratio": score_equity_ratio(df["equity_ratio"]),

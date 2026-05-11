@@ -91,6 +91,8 @@ create table if not exists financial_history (
   month                  integer not null,
   -- 売上 (百万円)
   sales                  numeric,
+  -- 営業利益 (百万円)
+  operating_profit       numeric,
   -- 営業利益率 (%)
   operating_profit_margin numeric,
   -- EPS (円)
