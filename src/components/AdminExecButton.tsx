@@ -15,6 +15,10 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Progress } from "@/components/ui/progress";
 
+// TODO: 処理実行中もモーダル閉じて別操作できるように改善
+//       - モーダルを閉じても Python は続行
+//       - 履歴管理が必要
+
 const icons = {
   refresh: RefreshCwIcon,
 };
