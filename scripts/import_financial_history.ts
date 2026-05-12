@@ -15,7 +15,9 @@ const supabaseKey =
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 if (!supabaseUrl || !supabaseKey) {
-  console.error(".env.local に Supabase の URL または Key が設定されていません。");
+  console.error(
+    ".env.local に Supabase の URL または Key が設定されていません。",
+  );
   process.exit(1);
 }
 
@@ -37,6 +39,7 @@ interface CSVRecord {
   payout_ratio: string;
   equity_ratio: string;
   cash: string;
+  operating_profit: string;
 }
 
 async function importData() {
@@ -61,19 +64,24 @@ async function importData() {
           year: parseInt(record.year),
           month: parseInt(record.month),
           sales: parseFloat(record.sales) || null,
-          operating_profit_margin: parseFloat(record.operating_profit_margin) || null,
+          operating_profit_margin:
+            parseFloat(record.operating_profit_margin) || null,
           earnings_per_share: parseFloat(record.earnings_per_share) || null,
           operating_cash_flow: parseFloat(record.operating_cash_flow) || null,
           dividend_per_share: parseFloat(record.dividend_per_share) || null,
           payout_ratio: parseFloat(record.payout_ratio) || null,
           equity_ratio: parseFloat(record.equity_ratio) || null,
           cash: parseFloat(record.cash) || null,
+          operating_profit: parseFloat(record.operating_profit) || null,
         },
         { onConflict: "code,year,month" },
       );
 
     if (historyError) {
-      console.error(`${record.code}/${record.year}/${record.month} のインポートに失敗しました:`, historyError);
+      console.error(
+        `${record.code}/${record.year}/${record.month} のインポートに失敗しました:`,
+        historyError,
+      );
     } else {
       process.stdout.write(".");
     }
