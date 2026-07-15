@@ -1,7 +1,8 @@
--- UUID を有効化
-create extension if not exists "uuid-ossp";
--- timestamp の自動更新を有効化
-create extension if not exists moddatetime schema extensions;
+-- SQLite スキーマ定義
+-- 初期化: npx tsx scripts/init_db.ts
+
+-- 外部キー制約を有効化 (接続ごとに必要。アプリ側でも PRAGMA を発行する)
+pragma foreign_keys = on;
 
 -- markets テーブル
 create table if not exists markets (
@@ -9,7 +10,7 @@ create table if not exists markets (
   name text    not null
 );
 
-insert into markets (id, name) values
+insert or ignore into markets (id, name) values
   (1,    '東証プライム'),
   (2,    '東証スタンダード'),
   (3,    '東証グロース'),
@@ -20,8 +21,7 @@ insert into markets (id, name) values
   (8,    '福証本則'),
   (9,    '福証Q-Board'),
   (10,   '福証Fukuoka PRO Market'),
-  (9999, 'その他')
-on conflict (id) do nothing;
+  (9999, 'その他');
 
 -- industries テーブル
 create table if not exists industries (
@@ -29,7 +29,7 @@ create table if not exists industries (
   name text    not null
 );
 
-insert into industries (id, name) values
+insert or ignore into industries (id, name) values
   (1,    '水産・農林業'),
   (2,    '鉱業'),
   (3,    '建設業'),
@@ -63,51 +63,46 @@ insert into industries (id, name) values
   (31,   'その他金融業'),
   (32,   '不動産業'),
   (33,   'サービス業'),
-  (9999, 'その他')
-on conflict (id) do nothing;
+  (9999, 'その他');
 
 -- stocks テーブル
+-- 検索は code/name への like で行うため、Postgres 時代の fts カラムは廃止
 create table if not exists stocks (
-  code          text    primary key,
-  name          text    not null,
-  market        integer references markets(id),
-  industry      integer references industries(id),
-  price         numeric,
-  dividend_yield numeric,
-  -- 検索用カラム(code, name カラムから自動作成)
-  fts           tsvector generated always as (to_tsvector('simple', code || ' ' || name)) stored,
-  updated_at    timestamptz not null default now(),
-  created_at    timestamptz not null default now()
+  code           text    primary key,
+  name           text    not null,
+  market         integer references markets(id),
+  industry       integer references industries(id),
+  price          real,
+  dividend_yield real,
+  updated_at     text    not null default (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+  created_at     text    not null default (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
 );
-
--- 検索インデックスを作成
-create index stocks_fts on stocks using gin (fts);
 
 -- financial_history テーブル
 create table if not exists financial_history (
-  id                     uuid    default uuid_generate_v4() primary key,
-  code                   text    references stocks(code) on delete cascade not null,
-  year                   integer not null,
-  month                  integer not null,
+  id                      text    primary key default (lower(hex(randomblob(16)))),
+  code                    text    not null references stocks(code) on delete cascade,
+  year                    integer not null,
+  month                   integer not null,
   -- 売上 (百万円)
-  sales                  numeric,
+  sales                   real,
   -- 営業利益 (百万円)
-  operating_profit       numeric,
+  operating_profit        real,
   -- 営業利益率 (%)
-  operating_profit_margin numeric,
+  operating_profit_margin real,
   -- EPS (円)
-  earnings_per_share     numeric,
+  earnings_per_share      real,
   -- 営業CF (百万円)
-  operating_cash_flow    numeric,
+  operating_cash_flow     real,
   -- 一株配当 (円)
-  dividend_per_share     numeric,
+  dividend_per_share      real,
   -- 配当性向 (%)
-  payout_ratio           numeric,
+  payout_ratio            real,
   -- 自己資本比率 (%)
-  equity_ratio           numeric,
+  equity_ratio            real,
   -- 現金等 (百万円)
-  cash                   numeric,
-  created_at             timestamptz not null default now(),
+  cash                    real,
+  created_at              text    not null default (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
 
   -- code/year/month ごとにユニークなレコードとする
   unique(code, year, month)
@@ -125,47 +120,30 @@ create table if not exists scores (
   equity_ratio            integer default 0,
   cash                    integer default 0,
   total                   integer default 0,
-  updated_at              timestamptz not null default now()
+  updated_at              text    not null default (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
 );
 
 -- timestamp 自動更新トリガー
-create trigger handle_updated_at before update on stocks
-  for each row execute procedure moddatetime (updated_at);
-create trigger handle_updated_at_scores before update on scores
-  for each row execute procedure moddatetime (updated_at);
+create trigger if not exists handle_updated_at
+  after update on stocks
+  for each row
+begin
+  update stocks
+    set updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+    where code = old.code;
+end;
 
--- Row Level Security (RLS) を有効化
-alter table markets          enable row level security;
-alter table industries       enable row level security;
-alter table stocks           enable row level security;
-alter table financial_history enable row level security;
-alter table scores           enable row level security;
-
--- 誰でも読み取り可能にするポリシーを設定
-create policy "Allow public read access on markets"
-  on markets for select using (true);
-create policy "Allow public read access on industries"
-  on industries for select using (true);
-create policy "Allow public read access on stocks"
-  on stocks for select using (true);
-create policy "Allow public read access on financial_history"
-  on financial_history for select using (true);
-create policy "Allow public read access on scores"
-  on scores for select using (true);
-
--- 認証済み(service_role)、または匿名での insert/update を許可するポリシーを設定
--- 本番環境では、service_role に制限すべき
-create policy "Allow anon insert/update for demo"
-  on stocks for insert with check (true);
-create policy "Allow anon insert/update for demo history"
-  on financial_history for insert with check (true);
-create policy "Allow service_role insert/update on scores"
-  on scores for all using (true);
+create trigger if not exists handle_updated_at_scores
+  after update on scores
+  for each row
+begin
+  update scores
+    set updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+    where code = old.code;
+end;
 
 -- stocks_with_total_score view
-create view stocks_with_total_score
-  with (security_invoker=on)
-  as
+create view if not exists stocks_with_total_score as
 select
   stocks.code           as code,
   stocks.name           as name,
@@ -177,17 +155,14 @@ select
   stocks.dividend_yield as dividend_yield,
   stocks.updated_at     as updated_at,
   stocks.created_at     as created_at,
-  scores.total          as total_score,
-  stocks.fts            as fts
+  scores.total          as total_score
 from stocks
 left join markets    on stocks.market   = markets.id
 left join industries on stocks.industry = industries.id
 inner join scores    on stocks.code     = scores.code;
 
 -- stocks_with_scores view
-create view stocks_with_scores
-  with (security_invoker=on)
-  as
+create view if not exists stocks_with_scores as
 select
   stocks.code                    as code,
   stocks.name                    as name,

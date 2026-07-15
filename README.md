@@ -53,15 +53,16 @@
 
 ### バックエンド・データベース (Backend & Database)
 
-- BaaS / データベース (Database): **[Supabase](https://supabase.com/)** (PostgreSQL)
-  - 認証やデータベースの提供、フロントからのセキュアなエンドポイント通信
+- データベース (Database): **[SQLite](https://www.sqlite.org/)** (ローカルファイル: `data/haito-biyori.db`)
+  - Next.js サーバー側からは `better-sqlite3` で接続
+  - スキーマ定義は `db/schema.sql` (初回起動時に自動適用)
 
 ### データ収集・分析パイプライン (Data Pipeline)
 
 - 言語 (Language): **Python** 3.10+
 - データ収集 (Data Collection): `yfinance`
 - データ分析 (Data Analysis): `pandas`, `scipy`
-- データベース接続 (Database Connection): `supabase-python`
+- データベース接続 (Database Connection): `sqlite3` (標準ライブラリ)
 
 ## ローカル環境構築 (Getting Started)
 
@@ -69,22 +70,14 @@
 
 - [Node.js](https://nodejs.org/ja/) (v20以上推奨)
 - [Python](https://www.python.org/) (バッチ処理用)
-- Supabase アカウントとプロジェクト
 
-### 2. 環境変数の設定
+### 2. DB設定
 
-プロジェクトルートに `.env.local` ファイルを作成し、Supabaseの接続情報を設定
+データベースはローカルの SQLite ファイル (`data/haito-biyori.db`) を使用します。  
+初回起動時に `db/schema.sql` が自動適用されるため、事前のセットアップは不要です。  
+DBファイルの場所を変更したい場合は、環境変数 `SQLITE_DB_PATH` で上書きできます。
 
-```env
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-```
-
-### 3. DB設定
-
-`supabase/schema.sql` を実行し、DBの設定を実施
-
-### 4. フロントエンドの起動
+### 3. フロントエンドの起動
 
 npm を使用してパッケージをインストールし、開発サーバーを起動
 
@@ -98,9 +91,9 @@ npm run dev
 
 起動後、ブラウザで [http://localhost:3000](http://localhost:3000) にアクセスするとアプリケーションを確認できます。
 
-### 5. (任意) 初期データの投入
+### 4. (任意) 初期データの投入
 
-Supabaseへ初期データを投入
+SQLite へ初期データを投入
 
 1. `data/` ディレクトリにインポート用のCSVファイル（`stocks.csv` や `financial_history.csv`）を配置
 2. プロジェクトのルートディレクトリで以下のコマンドを実行し、データを投入
@@ -115,7 +108,7 @@ npx tsx scripts/import_financial_history.ts
 
 ※「銘柄データ」「財務履歴データ」は手元のデータからのインポートのみ対応しています。システムでの収集は行いません。
 
-### 6. (任意) Pythonデータ収集バッチの実行
+### 5. (任意) Pythonデータ収集バッチの実行
 
 データ収集・分析を行うPythonスクリプトを実行
 

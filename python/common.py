@@ -3,10 +3,9 @@ import json
 import logging
 import os
 import signal
+import sqlite3
 import warnings
-
-from dotenv import load_dotenv
-from supabase import create_client
+from pathlib import Path
 
 ###################
 # ログ設定
@@ -99,66 +98,44 @@ def send_frontend_log(msg: str):
 ###################
 
 
-@log_call
-def load_env():
-    """環境変数の読み込み"""
-    load_dotenv("../.env.local")
+def get_db_path():
+    """SQLite の DB ファイルパスを取得
+    環境変数 SQLITE_DB_PATH で上書き可能
+    """
+    env_path = os.getenv("SQLITE_DB_PATH")
+    if env_path:
+        return Path(env_path)
+
+    # リポジトリルート/data/haito-biyori.db
+    return Path(__file__).resolve().parent.parent / "data" / "haito-biyori.db"
 
 
 @log_call
-def connect_supabase():
-    """Supabase接続"""
+def connect_db():
+    """SQLite接続"""
     send_frontend_status("データベース接続中...")
 
-    # 環境変数読み込み
-    supabase_url = os.getenv("NEXT_PUBLIC_SUPABASE_URL")
-    supabase_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+    db_path = get_db_path()
 
-    # 環境変数が設定されていない場合は終了
-    missing = []
-    if not supabase_url:
-        missing.append("NEXT_PUBLIC_SUPABASE_URL")
-    if not supabase_key:
-        missing.append("SUPABASE_SERVICE_ROLE_KEY")
-    if missing:
-        send_frontend_status("データベース接続失敗。少し待ってリトライしてください。")
-        logger.error(f"Supabase環境変数が設定されていません: {', '.join(missing)}")
+    # DB ファイルが存在しない場合は終了 (アプリ側/移行スクリプトで作成される)
+    if not db_path.exists():
+        send_frontend_status("データベース接続失敗。DBファイルが見つかりません。")
+        logger.error(f"SQLite の DB ファイルが見つかりません: {db_path}")
         return None
 
-    return create_client(supabase_url, supabase_key)
+    conn = sqlite3.connect(db_path)
+    # カラム名でアクセスできるようにする
+    conn.row_factory = sqlite3.Row
+    conn.execute("pragma foreign_keys = on")
+    return conn
 
 
 @log_call
-def fetch_stocks_from_db(supabase):
-    """Supabase から銘柄リストを取得"""
-    stocks = []
-    start = 0
-    batch_size = 1000
-
+def fetch_stocks_from_db(conn):
+    """SQLite から銘柄リストを取得"""
     try:
-        # 1000件ずつ取得
-        while True:
-            response = (
-                supabase.table("stocks")
-                .select("code, name")
-                .range(start, start + batch_size - 1)
-                .execute()
-            )
-            data = response.data
-            if not data:
-                break
-
-            stocks.extend(data)
-            if len(data) < batch_size:
-                break
-
-            start += batch_size
-        return stocks
+        rows = conn.execute("select code, name from stocks order by code").fetchall()
+        return [dict(row) for row in rows]
     except Exception as e:
         logger.warning(f"銘柄リスト取得エラー: {e}")
-        # エラーが発生しても、それまでに取得できたデータを返す
-        if stocks:
-            send_frontend_log(f"銘柄リストは一部のみ取得できました ({len(stocks)}件)")
-            logger.info(f"取得成功した銘柄で後続処理を続行 ({len(stocks)}件)")
-            return stocks
     return []

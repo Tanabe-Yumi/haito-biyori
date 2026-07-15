@@ -8,9 +8,8 @@ from scipy import stats
 # common モジュールのインポート
 import common
 from common import (
-    connect_supabase,
+    connect_db,
     fetch_stocks_from_db,
-    load_env,
     make_log_decorator,
     send_frontend_log,
     send_frontend_progress,
@@ -324,9 +323,9 @@ def calculate_stock_score(df):
 
 
 @log_call
-def calculateScores(supabase):
+def calculateScores(conn):
     #  銘柄リストを取得
-    stocks = fetch_stocks_from_db(supabase)
+    stocks = fetch_stocks_from_db(conn)
     if not stocks:
         send_frontend_status("更新する銘柄がありません")
         logger.warning("更新する銘柄が0件. 処理を終了")
@@ -351,15 +350,18 @@ def calculateScores(supabase):
         try:
             # 決算情報を取得
             # 直近10年分(降順で取得し後で並び替え)
-            history = (
-                supabase.table("financial_history")
-                .select("*")
-                .eq("code", code)
-                .order("year", desc=True)
-                .limit(10)
-                .execute()
-                .data
-            )
+            history = [
+                dict(row)
+                for row in conn.execute(
+                    """
+                    select * from financial_history
+                    where code = ?
+                    order by year desc
+                    limit 10
+                    """,
+                    (code,),
+                ).fetchall()
+            ]
             if not history:
                 send_frontend_log(f"✗ 失敗: {code} {name} (決算データなし)")
                 logger.warning(f"✗ 決算データなし: {code} {name}")
@@ -374,7 +376,32 @@ def calculateScores(supabase):
 
             #  DB保存
             scores["code"] = code
-            supabase.table("scores").upsert(scores).execute()
+            conn.execute(
+                """
+                insert into scores (
+                  code, sales, operating_profit_margin, earnings_per_share,
+                  operating_cash_flow, dividend_per_share, payout_ratio,
+                  equity_ratio, cash, total
+                )
+                values (
+                  :code, :sales, :operating_profit_margin, :earnings_per_share,
+                  :operating_cash_flow, :dividend_per_share, :payout_ratio,
+                  :equity_ratio, :cash, :total
+                )
+                on conflict (code) do update set
+                  sales                   = excluded.sales,
+                  operating_profit_margin = excluded.operating_profit_margin,
+                  earnings_per_share      = excluded.earnings_per_share,
+                  operating_cash_flow     = excluded.operating_cash_flow,
+                  dividend_per_share      = excluded.dividend_per_share,
+                  payout_ratio            = excluded.payout_ratio,
+                  equity_ratio            = excluded.equity_ratio,
+                  cash                    = excluded.cash,
+                  total                   = excluded.total
+                """,
+                scores,
+            )
+            conn.commit()
 
             send_frontend_log(f"✓ 成功: {code} {name} (スコア: {scores['total']})")
             logger.info(f"✓ 更新成功: {code} {name} (スコア: {scores['total']})")
@@ -397,12 +424,12 @@ def calculateScores(supabase):
 ###################
 
 if __name__ == "__main__":
-    # 環境変数読み込み
-    load_env()
-
-    # supabase 接続
-    supabase = connect_supabase()
+    # SQLite 接続
+    conn = connect_db()
+    if conn is None:
+        sys.exit(1)
 
     # スコア計算
-    calculateScores(supabase)
+    calculateScores(conn)
+    conn.close()
     sys.exit()

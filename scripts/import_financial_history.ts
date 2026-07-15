@@ -1,31 +1,7 @@
-import { createClient } from "@supabase/supabase-js";
 import fs from "fs";
 import path from "path";
 import { parse } from "csv-parse/sync";
-import dotenv from "dotenv";
-import { Database } from "@/types/database.types";
-
-// 環境変数読み込み
-dotenv.config({ path: ".env.local" });
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-// Use Service Role Key if available (for scripts/admin), otherwise Anon Key
-const supabaseKey =
-  process.env.SUPABASE_SERVICE_ROLE_KEY ||
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-if (!supabaseUrl || !supabaseKey) {
-  console.error(
-    ".env.local に Supabase の URL または Key が設定されていません。",
-  );
-  process.exit(1);
-}
-
-console.log(
-  `使用する認証情報: ${supabaseUrl} (Key length: ${supabaseKey.length})`,
-);
-
-const supabase = createClient<Database>(supabaseUrl, supabaseKey);
+import { db } from "../src/lib/db";
 
 interface CSVRecord {
   code: string;
@@ -42,7 +18,7 @@ interface CSVRecord {
   operating_profit: string;
 }
 
-async function importData() {
+function importData() {
   const csvFilePath = path.join(__dirname, "../data/financial_history.csv");
   const fileContent = fs.readFileSync(csvFilePath, "utf-8");
 
@@ -53,37 +29,55 @@ async function importData() {
 
   console.log(`${records.length}件のレコードをインポートします...`);
 
+  // financial_history に upsert
+  const upsert = db.prepare(`
+    insert into financial_history (
+      code, year, month, sales, operating_profit_margin, earnings_per_share,
+      operating_cash_flow, dividend_per_share, payout_ratio, equity_ratio,
+      cash, operating_profit
+    )
+    values (
+      @code, @year, @month, @sales, @operating_profit_margin, @earnings_per_share,
+      @operating_cash_flow, @dividend_per_share, @payout_ratio, @equity_ratio,
+      @cash, @operating_profit
+    )
+    on conflict (code, year, month) do update set
+      sales                   = excluded.sales,
+      operating_profit_margin = excluded.operating_profit_margin,
+      earnings_per_share      = excluded.earnings_per_share,
+      operating_cash_flow     = excluded.operating_cash_flow,
+      dividend_per_share      = excluded.dividend_per_share,
+      payout_ratio            = excluded.payout_ratio,
+      equity_ratio            = excluded.equity_ratio,
+      cash                    = excluded.cash,
+      operating_profit        = excluded.operating_profit
+  `);
+
   for (const rawRecord of records) {
     const record = rawRecord as CSVRecord;
-    // financial_history に upsert
-    const { error: historyError } = await supabase
-      .from("financial_history")
-      .upsert(
-        {
-          code: record.code,
-          year: parseInt(record.year),
-          month: parseInt(record.month),
-          sales: parseFloat(record.sales) || null,
-          operating_profit_margin:
-            parseFloat(record.operating_profit_margin) || null,
-          earnings_per_share: parseFloat(record.earnings_per_share) || null,
-          operating_cash_flow: parseFloat(record.operating_cash_flow) || null,
-          dividend_per_share: parseFloat(record.dividend_per_share) || null,
-          payout_ratio: parseFloat(record.payout_ratio) || null,
-          equity_ratio: parseFloat(record.equity_ratio) || null,
-          cash: parseFloat(record.cash) || null,
-          operating_profit: parseFloat(record.operating_profit) || null,
-        },
-        { onConflict: "code,year,month" },
-      );
 
-    if (historyError) {
+    try {
+      upsert.run({
+        code: record.code,
+        year: parseInt(record.year),
+        month: parseInt(record.month),
+        sales: parseFloat(record.sales) || null,
+        operating_profit_margin:
+          parseFloat(record.operating_profit_margin) || null,
+        earnings_per_share: parseFloat(record.earnings_per_share) || null,
+        operating_cash_flow: parseFloat(record.operating_cash_flow) || null,
+        dividend_per_share: parseFloat(record.dividend_per_share) || null,
+        payout_ratio: parseFloat(record.payout_ratio) || null,
+        equity_ratio: parseFloat(record.equity_ratio) || null,
+        cash: parseFloat(record.cash) || null,
+        operating_profit: parseFloat(record.operating_profit) || null,
+      });
+      process.stdout.write(".");
+    } catch (error) {
       console.error(
         `${record.code}/${record.year}/${record.month} のインポートに失敗しました:`,
-        historyError,
+        error,
       );
-    } else {
-      process.stdout.write(".");
     }
   }
 
