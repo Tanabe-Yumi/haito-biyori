@@ -137,7 +137,6 @@ export const columns = (
         />
       ),
       cell: ({ row }) => {
-        // TODO: デフォルトを 3.5 にする
         const yieldVal = row.getValue("dividendYield") as number | undefined;
         if (!yieldVal) return <div className="text-right px-4">-</div>;
         return <div className="text-right font-medium px-4">{yieldVal}%</div>;

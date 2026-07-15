@@ -17,8 +17,9 @@ export const stockListParams = {
   // 市場・業種はカンマ区切りの ID リスト (例: m=1,2)
   market: parseAsArrayOf(parseAsInteger).withDefault([]),
   industry: parseAsArrayOf(parseAsInteger).withDefault([]),
+  // 配当利回りはデフォルトで 3.5% 以上に絞り込む
+  yield: parseAsFloat.withDefault(3.5),
   // 0 は「全て」(フィルタなし)
-  yield: parseAsFloat.withDefault(0),
   score: parseAsInteger.withDefault(0),
   // ページ番号は 1 始まり
   page: parseAsInteger.withDefault(1),
