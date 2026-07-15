@@ -34,10 +34,17 @@ function createSqlite(): Database.Database {
 }
 
 // 検索用の文字列正規化
-// NFKC で全角英数字を半角に揃え (半角カナは全角に揃う)、小文字化する
+// 1. NFKC で全角英数字を半角に、半角カナを全角に揃える
+// 2. 小文字化
+// 3. カタカナをひらがなに揃える (ァ U+30A1 〜 ヶ U+30F6 は 0x60 引くとひらがなになる)
 // SQL 関数 normalize_search と検索入力の両方でこの関数を使い、比較の基準を一致させる
 export function normalizeSearchText(text: string): string {
-  return text.normalize("NFKC").toLowerCase();
+  return text
+    .normalize("NFKC")
+    .toLowerCase()
+    .replace(/[ァ-ヶ]/g, (ch) =>
+      String.fromCharCode(ch.charCodeAt(0) - 0x60),
+    );
 }
 
 // better-sqlite3 の生接続 (スクリプトなど生SQLを使う場面用)
