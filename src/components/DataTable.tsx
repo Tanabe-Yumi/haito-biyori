@@ -20,13 +20,18 @@ import {
 import SearchBox from "@/components/SearchBox";
 import PaginationControll from "@/components/PaginationControll";
 import RowsSelector from "@/components/RowsSelector";
+import { StockFilterMenu } from "@/components/StockFilterMenu";
 import { useStockListParams } from "@/hooks/use-search-params";
+import { Market } from "@/types/market";
+import { Industry } from "@/types/industry";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
   total: number;
   isLoading: boolean;
+  markets: Market[];
+  industries: Industry[];
 }
 
 export function DataTable<TData, TValue>({
@@ -34,6 +39,8 @@ export function DataTable<TData, TValue>({
   data,
   total,
   isLoading,
+  markets,
+  industries,
 }: DataTableProps<TData, TValue>) {
   const [{ page, rows }] = useStockListParams();
   // 0 基準のページ番号に直す
@@ -60,12 +67,20 @@ export function DataTable<TData, TValue>({
 
   return (
     <div className="w-full space-y-4">
-      <div className="flex items-center justify-between">
+      {/* ツールバー
+          絞り込みと件数セレクターは1つのグループとして扱い、収まらないときは
+          グループごと検索窓の下に折り返す (件数セレクターだけが2行目に落ちない) */}
+      <div className="flex flex-wrap items-center gap-2">
         {/* 検索窓 */}
         <SearchBox isLoading={isLoading} />
 
-        {/* 表示行数セレクター */}
-        <RowsSelector />
+        <div className="flex flex-1 items-center justify-between gap-2">
+          {/* 絞り込みメニュー */}
+          <StockFilterMenu markets={markets} industries={industries} />
+
+          {/* 表示行数セレクター */}
+          <RowsSelector />
+        </div>
       </div>
 
       {/* テーブル */}
