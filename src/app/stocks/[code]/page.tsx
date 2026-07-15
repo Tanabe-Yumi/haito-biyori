@@ -26,6 +26,10 @@ import {
   TrendingUpIcon,
 } from "lucide-react";
 import Link from "next/link";
+import {
+  loadStockListParams,
+  serializeStockListParams,
+} from "@/lib/stockListParams";
 
 interface StockDetailPageProps {
   params: Promise<{ code: string }>;
@@ -38,6 +42,11 @@ export async function generateMetadata({ params }: StockDetailPageProps) {
   const stock = await getStockNameByCode(code);
   return {
     title: `${code} ${stock.name}`,
+    // 一覧から引き継ぐクエリは表示内容に影響しないナビゲーション用の状態のため、
+    // canonical はクエリなしの URL に固定する (重複コンテンツ対策)
+    alternates: {
+      canonical: `/stocks/${code}`,
+    },
   };
 }
 
@@ -49,15 +58,9 @@ const StockDetailPage = async ({
 
   // 一覧ページから引き継いだ検索条件
   // 「一覧に戻る」でクエリ文字列ごと一覧へ戻し、検索条件を復元する
-  const listQuery = new URLSearchParams();
-  for (const [key, value] of Object.entries(await searchParams)) {
-    if (typeof value === "string") {
-      listQuery.set(key, value);
-    } else if (Array.isArray(value)) {
-      value.forEach((v) => listQuery.append(key, v));
-    }
-  }
-  const backHref = listQuery.size !== 0 ? `/?${listQuery}` : "/";
+  // 正規の順序に並べ直して直列化する (未知のパラメータは除外される)
+  const listParams = await loadStockListParams(searchParams);
+  const backHref = serializeStockListParams("/", listParams);
 
   const stock = await getStockWithScoresByCode(code).catch((e) =>
     console.error(e),
