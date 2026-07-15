@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { parse } from "csv-parse/sync";
-import { db } from "../src/lib/db";
+import { sqlite } from "../src/lib/db";
 
 interface CSVRecord {
   code: string;
@@ -21,7 +21,7 @@ function updateOperatingProfit() {
 
   console.log(`${records.length}件のレコードを更新します...`);
 
-  const update = db.prepare(`
+  const update = sqlite.prepare(`
     update financial_history
       set operating_profit = @operating_profit
       where code = @code and year = @year and month = @month

@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { parse } from "csv-parse/sync";
-import { db } from "../src/lib/db";
+import { sqlite } from "../src/lib/db";
 
 interface CSVRecord {
   code: string;
@@ -30,7 +30,7 @@ function importData() {
   console.log(`${records.length}件のレコードをインポートします...`);
 
   // financial_history に upsert
-  const upsert = db.prepare(`
+  const upsert = sqlite.prepare(`
     insert into financial_history (
       code, year, month, sales, operating_profit_margin, earnings_per_share,
       operating_cash_flow, dividend_per_share, payout_ratio, equity_ratio,

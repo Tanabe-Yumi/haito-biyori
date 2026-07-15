@@ -56,6 +56,8 @@
 - データベース (Database): **[SQLite](https://www.sqlite.org/)** (ローカルファイル: `data/haito-biyori.db`)
   - Next.js サーバー側からは `better-sqlite3` で接続
   - スキーマ定義は `db/schema.sql` (初回起動時に自動適用)
+- クエリビルダ (Query Builder): **[Kysely](https://kysely.dev/)**
+  - 型定義は実DBから自動生成 (`npm run db:codegen` → `src/types/db.ts`)。スキーマ変更時に再実行する
 
 ### データ収集・分析パイプライン (Data Pipeline)
 

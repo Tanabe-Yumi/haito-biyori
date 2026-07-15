@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { parse } from "csv-parse/sync";
-import { db } from "../src/lib/db";
+import { sqlite } from "../src/lib/db";
 
 interface CSVRecord {
   code: string;
@@ -24,7 +24,7 @@ function importData() {
   console.log(`${records.length}件のレコードをインポートします...`);
 
   // stocks に upsert
-  const upsert = db.prepare(`
+  const upsert = sqlite.prepare(`
     insert into stocks (code, name, industry, market, price, dividend_yield)
     values (@code, @name, @industry, @market, @price, @dividend_yield)
     on conflict (code) do update set

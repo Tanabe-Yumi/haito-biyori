@@ -1,0 +1,19 @@
+{
+  "url": "data/haito-biyori.db",
+  "outFile": "src/types/db.ts",
+  "overrides": {
+    "columns": {
+      "markets.id": "number",
+      "industries.id": "number",
+      "stocks.code": "string",
+      "scores.code": "string",
+      "stocks_with_total_score.code": "string",
+      "stocks_with_total_score.name": "string",
+      "stocks_with_total_score.updated_at": "string",
+      "stocks_with_total_score.created_at": "string",
+      "stocks_with_scores.code": "string",
+      "stocks_with_scores.name": "string",
+      "stocks_with_scores.updated_at": "string"
+    }
+  }
+}

@@ -1,6 +1,8 @@
 import Database from "better-sqlite3";
 import fs from "fs";
 import path from "path";
+import { Kysely, SqliteDialect } from "kysely";
+import { DB } from "@/types/db";
 
 // SQLite の DB ファイルパス
 // 環境変数 SQLITE_DB_PATH で上書き可能
@@ -12,9 +14,12 @@ const dbPath =
 const schemaPath = path.join(process.cwd(), "db", "schema.sql");
 
 // Next.js の開発時ホットリロードで接続が増殖しないよう globalThis にキャッシュ
-const globalForDb = globalThis as unknown as { sqlite?: Database.Database };
+const globalForDb = globalThis as unknown as {
+  sqlite?: Database.Database;
+  kysely?: Kysely<DB>;
+};
 
-function createDb(): Database.Database {
+function createSqlite(): Database.Database {
   fs.mkdirSync(path.dirname(dbPath), { recursive: true });
 
   const db = new Database(dbPath);
@@ -28,5 +33,13 @@ function createDb(): Database.Database {
   return db;
 }
 
-export const db = globalForDb.sqlite ?? createDb();
-globalForDb.sqlite = db;
+// better-sqlite3 の生接続 (スクリプトなど生SQLを使う場面用)
+export const sqlite = globalForDb.sqlite ?? createSqlite();
+globalForDb.sqlite = sqlite;
+
+// Kysely インスタンス (アプリからのクエリはこちらを使う)
+// 型定義 (src/types/db.ts) は実DBから自動生成: npm run db:codegen
+export const db =
+  globalForDb.kysely ??
+  new Kysely<DB>({ dialect: new SqliteDialect({ database: sqlite }) });
+globalForDb.kysely = db;

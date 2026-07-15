@@ -1,4 +1,6 @@
+import { Expression, SqlBool, expressionBuilder, sql } from "kysely";
 import { db } from "@/lib/db";
+import { DB } from "@/types/db";
 import {
   StockWithTotalScore,
   StockWithScores,
@@ -11,87 +13,50 @@ import { Industry } from "@/types/industry";
 
 // TODO: エラーハンドリング
 
-// stocks_with_scores / stocks_with_total_score view の行
-interface StockViewRow {
-  code: string;
-  name: string;
-  market_id: number | null;
-  market_name: string | null;
-  industry_id: number | null;
-  industry_name: string | null;
-  price: number | null;
-  dividend_yield: number | null;
-  updated_at: string;
-  total_score: number | null;
-  sales_score: number | null;
-  operating_profit_margin_score: number | null;
-  earnings_per_share_score: number | null;
-  operating_cash_flow_score: number | null;
-  dividend_per_share_score: number | null;
-  payout_ratio_score: number | null;
-  equity_ratio_score: number | null;
-  cash_score: number | null;
-}
+// フィルタ対象のビュー (どちらも同じ絞り込みカラムを持つ)
+type StockView = "stocks_with_total_score" | "stocks_with_scores";
 
-// financial_history テーブルの行
-interface FinancialHistoryRow {
-  code: string;
-  year: number;
-  month: number;
-  sales: number | null;
-  operating_profit_margin: number | null;
-  earnings_per_share: number | null;
-  operating_cash_flow: number | null;
-  dividend_per_share: number | null;
-  payout_ratio: number | null;
-  equity_ratio: number | null;
-  cash: number | null;
-}
-
-// 検索・絞り込み条件から where 句とバインド値を組み立てる
+// 検索・絞り込み条件を where 式のリストに組み立てる
 function buildStockFilters(
   search: string | null,
   markets: number[] | null,
   industries: number[] | null,
   minDividendYield: number | null,
   minScore: number | null,
-): { where: string; params: (string | number)[] } {
-  const conditions: string[] = [];
-  const params: (string | number)[] = [];
+): Expression<SqlBool>[] {
+  const eb = expressionBuilder<DB, StockView>();
+  const conditions: Expression<SqlBool>[] = [];
 
   // 検索
   // 空白区切りの各単語が code または name に部分一致すればヒット (AND 条件)
   if (search) {
     for (const word of search.split(/\s+/).filter(Boolean)) {
       // like のワイルドカードをエスケープ
-      const escaped = word.replace(/[\\%_]/g, "\\$&");
-      conditions.push("(code like ? escape '\\' or name like ? escape '\\')");
-      params.push(`%${escaped}%`, `%${escaped}%`);
+      const pattern = `%${word.replace(/[\\%_]/g, "\\$&")}%`;
+      conditions.push(
+        eb.or([
+          sql<SqlBool>`${eb.ref("code")} like ${pattern} escape '\\'`,
+          sql<SqlBool>`${eb.ref("name")} like ${pattern} escape '\\'`,
+        ]),
+      );
     }
   }
 
   // 条件で絞り込み
   if (markets && markets.length !== 0) {
-    conditions.push(`market_id in (${markets.map(() => "?").join(",")})`);
-    params.push(...markets);
+    conditions.push(eb("market_id", "in", markets));
   }
   if (industries && industries.length !== 0) {
-    conditions.push(`industry_id in (${industries.map(() => "?").join(",")})`);
-    params.push(...industries);
+    conditions.push(eb("industry_id", "in", industries));
   }
   if (minDividendYield) {
-    conditions.push("dividend_yield >= ?");
-    params.push(minDividendYield);
+    conditions.push(eb("dividend_yield", ">=", minDividendYield));
   }
   if (minScore) {
-    conditions.push("total_score >= ?");
-    params.push(minScore);
+    conditions.push(eb("total_score", ">=", minScore));
   }
 
-  const where =
-    conditions.length !== 0 ? `where ${conditions.join(" and ")}` : "";
-
-  return { where, params };
+  return conditions;
 }
 
 // コードと名前を取得
@@ -99,11 +64,11 @@ function buildStockFilters(
 export async function getStockNameByCode(
   code: string,
 ): Promise<{ name: string }> {
-  const row = db
-    .prepare<[string], { name: string }>(
-      "select name from stocks where code = ?",
-    )
-    .get(code);
+  const row = await db
+    .selectFrom("stocks")
+    .select("name")
+    .where("code", "=", code)
+    .executeTakeFirst();
 
   if (!row) {
     console.error("Error fetching stock: not found", code);
@@ -124,7 +89,8 @@ export async function getStocksWithTotalScore(
   page: number = 0,
   rows: number = 10,
 ): Promise<StockPage> {
-  const { where, params } = buildStockFilters(
+  const eb = expressionBuilder<DB, StockView>();
+  const conditions = buildStockFilters(
     search,
     markets,
     industries,
@@ -133,22 +99,23 @@ export async function getStocksWithTotalScore(
   );
 
   // 総件数
-  const { count } = db
-    .prepare<
-      (string | number)[],
-      { count: number }
-    >(`select count(*) as count from stocks_with_total_score ${where}`)
-    .get(...params)!;
-
+  let countQuery = db
+    .selectFrom("stocks_with_total_score")
+    .select(({ fn }) => fn.countAll<number>().as("count"));
   // ソートとページネーション
-  const data = db
-    .prepare<(string | number)[], StockViewRow>(
-      `select * from stocks_with_total_score
-       ${where}
-       order by total_score desc nulls last
-       limit ? offset ?`,
-    )
-    .all(...params, rows, page * rows);
+  let dataQuery = db.selectFrom("stocks_with_total_score").selectAll();
+
+  if (conditions.length !== 0) {
+    countQuery = countQuery.where(eb.and(conditions));
+    dataQuery = dataQuery.where(eb.and(conditions));
+  }
+
+  const { count } = await countQuery.executeTakeFirstOrThrow();
+  const data = await dataQuery
+    .orderBy("total_score", (ob) => ob.desc().nullsLast())
+    .limit(rows)
+    .offset(page * rows)
+    .execute();
 
   // Stock 型にマッピング
   const stocks: StockWithTotalScore[] = data.map((s) => {
@@ -178,7 +145,8 @@ export async function getStocksWithScores(
   page: number = 0,
   rows: number = 10,
 ): Promise<StockScoreList> {
-  const { where, params } = buildStockFilters(
+  const eb = expressionBuilder<DB, StockView>();
+  const conditions = buildStockFilters(
     search,
     markets,
     industries,
@@ -186,21 +154,22 @@ export async function getStocksWithScores(
     minScore,
   );
 
-  const { count } = db
-    .prepare<
-      (string | number)[],
-      { count: number }
-    >(`select count(*) as count from stocks_with_scores ${where}`)
-    .get(...params)!;
+  let countQuery = db
+    .selectFrom("stocks_with_scores")
+    .select(({ fn }) => fn.countAll<number>().as("count"));
+  let dataQuery = db.selectFrom("stocks_with_scores").selectAll();
 
-  const data = db
-    .prepare<(string | number)[], StockViewRow>(
-      `select * from stocks_with_scores
-       ${where}
-       order by total_score desc nulls last
-       limit ? offset ?`,
-    )
-    .all(...params, rows, page * rows);
+  if (conditions.length !== 0) {
+    countQuery = countQuery.where(eb.and(conditions));
+    dataQuery = dataQuery.where(eb.and(conditions));
+  }
+
+  const { count } = await countQuery.executeTakeFirstOrThrow();
+  const data = await dataQuery
+    .orderBy("total_score", (ob) => ob.desc().nullsLast())
+    .limit(rows)
+    .offset(page * rows)
+    .execute();
 
   // マッピング
   const stocks: StockWithScores[] = data.map((s) => {
@@ -231,12 +200,11 @@ export async function getStocksWithScores(
 export async function getStockWithScoresByCode(
   code: string,
 ): Promise<StockWithScores> {
-  const s = db
-    .prepare<
-      [string],
-      StockViewRow
-    >("select * from stocks_with_scores where code = ?")
-    .get(code);
+  const s = await db
+    .selectFrom("stocks_with_scores")
+    .selectAll()
+    .where("code", "=", code)
+    .executeTakeFirst();
 
   if (!s) {
     console.error("Error fetching stock: not found", code);
@@ -269,19 +237,18 @@ export async function getFinancialHistoryByCode(
   limit?: number,
 ): Promise<FinancialStatement[]> {
   // 直近 limit 件を取得するため降順で取得
-  let sql =
-    "select * from financial_history where code = ? order by year desc";
-  const params: (string | number)[] = [code];
+  let query = db
+    .selectFrom("financial_history")
+    .selectAll()
+    .where("code", "=", code)
+    .orderBy("year", "desc");
 
   // 最大件数を設定
   if (limit !== undefined && limit > 0) {
-    sql += " limit ?";
-    params.push(limit);
+    query = query.limit(limit);
   }
 
-  const data = db
-    .prepare<(string | number)[], FinancialHistoryRow>(sql)
-    .all(...params);
+  const data = await query.execute();
 
   // 昇順にソートして返却
   const financialHistory: FinancialStatement[] = data.reverse().map((f) => {
@@ -305,9 +272,7 @@ export async function getFinancialHistoryByCode(
 
 // 全ての market データを取得
 export async function getMarkets(): Promise<Market[]> {
-  const data = db
-    .prepare<[], { id: number; name: string }>("select id, name from markets")
-    .all();
+  const data = await db.selectFrom("markets").select(["id", "name"]).execute();
 
   const markets: Market[] = data.map((m) => {
     return {
@@ -321,12 +286,10 @@ export async function getMarkets(): Promise<Market[]> {
 
 // 全ての industry データを取得
 export async function getIndustries(): Promise<Industry[]> {
-  const data = db
-    .prepare<
-      [],
-      { id: number; name: string }
-    >("select id, name from industries")
-    .all();
+  const data = await db
+    .selectFrom("industries")
+    .select(["id", "name"])
+    .execute();
 
   const industries: Industry[] = data.map((m) => {
     return {
