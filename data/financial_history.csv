@@ -1,1 +1,1 @@
-code,year,period,sales,operating_profit_margin,earnings_per_share,operating_cash_flow,dividend_per_share,payout_ratio,equity_ratio,cash,operating_profit
+code,year,month,sales,operating_profit_margin,earnings_per_share,operating_cash_flow,dividend_per_share,payout_ratio,equity_ratio,cash,operating_profit

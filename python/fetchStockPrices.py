@@ -7,9 +7,8 @@ import yfinance as yf
 # common モジュールのインポート
 import common
 from common import (
-    connect_supabase,
+    connect_db,
     fetch_stocks_from_db,
-    load_env,
     make_log_decorator,
     send_frontend_log,
     send_frontend_progress,
@@ -35,21 +34,23 @@ log_call = make_log_decorator(logger)
 
 
 def update_stock_price(
-    supabase, code: str, name: str, price: float, dividend_yield: float
+    conn, code: str, name: str, price: float, dividend_yield: float
 ):
     """銘柄情報をDBに保存"""
     try:
         # フォーマット
         price_formated = int(price) if price else None
         dividend_yield_formated = (
-            "{:.2f}".format(dividend_yield) if dividend_yield else None
+            round(float(dividend_yield), 2) if dividend_yield else None
         )
 
         # DB更新
         # None の場合は NULL が格納される
-        supabase.table("stocks").update(
-            {"price": price_formated, "dividend_yield": dividend_yield_formated}
-        ).eq("code", code).execute()
+        conn.execute(
+            "update stocks set price = ?, dividend_yield = ? where code = ?",
+            (price_formated, dividend_yield_formated, code),
+        )
+        conn.commit()
         logger.info(
             f"DB更新成功: {code} {name} (株価: {price}, 配当利回り: {dividend_yield})"
         )
@@ -60,9 +61,9 @@ def update_stock_price(
 
 
 @log_call
-def fetchStockPrices(supabase):
+def fetchStockPrices(conn):
     # 銘柄リストを取得
-    stocks = fetch_stocks_from_db(supabase)
+    stocks = fetch_stocks_from_db(conn)
     if not stocks:
         send_frontend_status("更新する銘柄がありません")
         logger.warning("更新する銘柄が0件. 処理を終了")
@@ -109,7 +110,7 @@ def fetchStockPrices(supabase):
                 continue
 
             # DB保存
-            if update_stock_price(supabase, code, name, price, dividend_yield):
+            if update_stock_price(conn, code, name, price, dividend_yield):
                 send_frontend_log(
                     f"✓ 成功: {name} (株価: {int(price)}, 配当利回り: {dividend_yield})"
                 )
@@ -140,10 +141,11 @@ def fetchStockPrices(supabase):
 ###################
 
 if __name__ == "__main__":
-    # 環境変数読み込み
-    load_env()
-    # supabase 接続
-    supabase = connect_supabase()
+    # SQLite 接続
+    conn = connect_db()
+    if conn is None:
+        sys.exit(1)
     # 株価取得
-    fetchStockPrices(supabase)
+    fetchStockPrices(conn)
+    conn.close()
     sys.exit()
