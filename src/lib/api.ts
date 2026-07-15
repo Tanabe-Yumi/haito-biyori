@@ -1,5 +1,5 @@
 import { Expression, SqlBool, expressionBuilder, sql } from "kysely";
-import { db } from "@/lib/db";
+import { db, normalizeSearchText } from "@/lib/db";
 import { DB } from "@/types/db";
 import {
   StockWithTotalScore,
@@ -29,14 +29,15 @@ function buildStockFilters(
 
   // 検索
   // 空白区切りの各単語が code または name に部分一致すればヒット (AND 条件)
+  // 全角/半角・大文字/小文字の違いを吸収するため、入力とカラムの両方を正規化して比較
   if (search) {
     for (const word of search.split(/\s+/).filter(Boolean)) {
-      // like のワイルドカードをエスケープ
-      const pattern = `%${word.replace(/[\\%_]/g, "\\$&")}%`;
+      // 正規化してから like のワイルドカードをエスケープ
+      const pattern = `%${normalizeSearchText(word).replace(/[\\%_]/g, "\\$&")}%`;
       conditions.push(
         eb.or([
-          sql<SqlBool>`${eb.ref("code")} like ${pattern} escape '\\'`,
-          sql<SqlBool>`${eb.ref("name")} like ${pattern} escape '\\'`,
+          sql<SqlBool>`normalize_search(${eb.ref("code")}) like ${pattern} escape '\\'`,
+          sql<SqlBool>`normalize_search(${eb.ref("name")}) like ${pattern} escape '\\'`,
         ]),
       );
     }

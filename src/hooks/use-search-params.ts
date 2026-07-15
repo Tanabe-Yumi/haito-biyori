@@ -1,14 +1,11 @@
-import { parseAsString, useQueryState } from "nuqs";
+import { useQueryStates } from "nuqs";
 
-// TODO: 初期値を引数から設定
+import { stockListParams, stockListUrlKeys } from "@/lib/stockListParams";
 
-// TODO: パーサーの設定 (https://nuqs.dev/docs/parsers/built-in#literals)
-
-// TODO: SEO 対策
-
-export function useSearchParam(key: string) {
-  return useQueryState(
-    key,
-    parseAsString.withDefault("").withOptions({ clearOnDefault: true }),
-  );
+// 一覧ページのクエリパラメータを型付きで読み書きするフック
+// - 論理名 (search, market, ...) で扱い、URL 上は短縮キー (q, m, ...) になる
+// - 値はパーサーにより型付き (search: string, market: number[], page: number, ...)
+// - デフォルト値と同じ値は URL から取り除かれる
+export function useStockListParams() {
+  return useQueryStates(stockListParams, { urlKeys: stockListUrlKeys });
 }

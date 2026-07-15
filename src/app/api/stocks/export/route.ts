@@ -1,33 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getStocksWithScores } from "@/lib/api";
+import { loadStockListParams } from "@/lib/stockListParams";
+import { EXPORT_BATCH_SIZE } from "@/constants/csv";
 import { StockWithScores } from "@/types/stock";
 
 export async function GET(request: NextRequest) {
-  const requestLimit = 1000;
-  const searchParams = request.nextUrl.searchParams;
-
-  // パラメータ取り出し
-  const searchParam = searchParams.get("search");
-  const marketParam = searchParams.get("market");
-  const industryParam = searchParams.get("industry");
-  const minYieldParam = searchParams.get("yield");
-  const minScoreParam = searchParams.get("score");
-
-  // 引数用の変数準備
-  const markets = marketParam
-    ? marketParam
-        .split(",")
-        .filter((m) => m !== "")
-        .map((m) => parseInt(m))
-    : null;
-  const industries = industryParam
-    ? industryParam
-        .split(",")
-        .filter((m) => m !== "")
-        .map((m) => parseInt(m))
-    : null;
-  const minYield = minYieldParam ? parseFloat(minYieldParam) : null;
-  const minScore = minScoreParam ? parseFloat(minScoreParam) : null;
+  // パラメータ取り出し (短縮キー q, m, i, y, s を論理名・型付きで受け取る)
+  const params = loadStockListParams(request.nextUrl.searchParams);
 
   let results: StockWithScores[] = [];
   let getCount = 0;
@@ -37,13 +16,13 @@ export async function GET(request: NextRequest) {
   // クエリ条件の全件を取得
   while (getCount < _totalCount) {
     const { stocks, totalCount } = await getStocksWithScores(
-      searchParam,
-      markets,
-      industries,
-      minYield,
-      minScore,
+      params.search || null,
+      params.market,
+      params.industry,
+      params.yield || null,
+      params.score || null,
       page,
-      requestLimit,
+      EXPORT_BATCH_SIZE,
     );
 
     results = [...results, ...stocks];

@@ -5,3 +5,6 @@ export const scoreRanges = [
   { id: 4, value: "10", label: "10以上" },
   { id: 5, value: "0", label: "全て" },
 ];
+
+// 合計スコアの満点 (評価項目8つ × 各5点)
+export const MAX_TOTAL_SCORE = 40;

@@ -26,6 +26,11 @@ const mPlus1p = M_PLUS_1p({
 });
 
 export const metadata: Metadata = {
+  // canonical などの相対 URL の解決基準
+  // 公開時は NEXT_PUBLIC_SITE_URL に本番 URL を設定する
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000",
+  ),
   title: {
     template: "%s | 配当びより",
     default: "配当びより",

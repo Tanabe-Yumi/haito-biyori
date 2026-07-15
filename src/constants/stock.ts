@@ -7,3 +7,6 @@ export const dividendYieldRange = [
   // TODO: マイナスの場合を考慮
   { id: 6, value: "0", label: "全て" },
 ];
+
+// 配当利回りの強調表示のしきい値 (%)
+export const HIGH_DIVIDEND_YIELD_THRESHOLD = 3.75;

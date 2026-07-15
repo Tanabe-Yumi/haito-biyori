@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { LoaderIcon, SearchIcon, XIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -7,20 +7,41 @@ import {
   InputGroupAddon,
   InputGroupInput,
 } from "@/components/ui/input-group";
-import { useSearchParam } from "@/hooks/use-search-params";
+import { useStockListParams } from "@/hooks/use-search-params";
+import { SEARCH_DEBOUNCE_MS } from "@/constants/search";
 
 interface SearchBoxProps {
   isLoading: boolean;
 }
 
 const SearchBox = ({ isLoading }: SearchBoxProps) => {
-  const [search, setSearch] = useState("");
-  const [query, setQuery] = useSearchParam("search");
+  const [{ search: query }, setParams] = useStockListParams();
+  // 入力欄の値 (初期値は URL の検索クエリ)
+  const [search, setSearch] = useState(query);
   const searchRef = useRef<HTMLInputElement>(null);
 
+  // 検索クエリへ反映し、結果が変わるためページを 1 に戻す
+  const applySearch = useCallback(
+    (value: string) => {
+      setParams({ search: value.trim(), page: 1 });
+    },
+    [setParams],
+  );
+
+  // インクリメンタル検索
+  // 入力が止まって SEARCH_DEBOUNCE_MS 経過したら自動で検索する
+  useEffect(() => {
+    if (search.trim() === query) {
+      return;
+    }
+    const timer = setTimeout(() => applySearch(search), SEARCH_DEBOUNCE_MS);
+    return () => clearTimeout(timer);
+  }, [search, query, applySearch]);
+
+  // Enter や検索ボタンでは待たずに即時検索
   const handleSubmit = (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setQuery(search.trim());
+    applySearch(search);
   };
 
   return (

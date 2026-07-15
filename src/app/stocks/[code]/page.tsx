@@ -26,9 +26,16 @@ import {
   TrendingUpIcon,
 } from "lucide-react";
 import Link from "next/link";
+import {
+  loadStockListParams,
+  serializeStockListParams,
+} from "@/lib/stockListParams";
+import { MAX_TOTAL_SCORE } from "@/constants/score";
+import { HIGH_DIVIDEND_YIELD_THRESHOLD } from "@/constants/stock";
 
 interface StockDetailPageProps {
   params: Promise<{ code: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }
 
 // ブラウザのタブ名を変更
@@ -37,11 +44,26 @@ export async function generateMetadata({ params }: StockDetailPageProps) {
   const stock = await getStockNameByCode(code);
   return {
     title: `${code} ${stock.name}`,
+    // 一覧から引き継ぐクエリは表示内容に影響しないナビゲーション用の状態のため、
+    // canonical はクエリなしの URL に固定する (重複コンテンツ対策)
+    alternates: {
+      canonical: `/stocks/${code}`,
+    },
   };
 }
 
-const StockDetailPage = async ({ params }: StockDetailPageProps) => {
+const StockDetailPage = async ({
+  params,
+  searchParams,
+}: StockDetailPageProps) => {
   const { code } = await params;
+
+  // 一覧ページから引き継いだ検索条件
+  // 「一覧に戻る」でクエリ文字列ごと一覧へ戻し、検索条件を復元する
+  // 正規の順序に並べ直して直列化する (未知のパラメータは除外される)
+  const listParams = await loadStockListParams(searchParams);
+  const backHref = serializeStockListParams("/", listParams);
+
   const stock = await getStockWithScoresByCode(code).catch((e) =>
     console.error(e),
   );
@@ -121,9 +143,8 @@ const StockDetailPage = async ({ params }: StockDetailPageProps) => {
 
   return (
     <div className="max-w-4xl mx-auto p-4 pt-0 md:p-8 md:pt-0 space-y-6">
-      {/* TODO: ページやフィルターも前のを引き継いだ状態で戻る */}
       <Link
-        href="/"
+        href={backHref}
         className="inline-flex items-center text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
       >
         <ArrowLeft className="mr-2 h-4 w-4" />
@@ -166,7 +187,7 @@ const StockDetailPage = async ({ params }: StockDetailPageProps) => {
             <p
               className={cn(
                 "text-2xl font-bold text-right",
-                (stock.dividendYield ?? 0) >= 3.75 &&
+                (stock.dividendYield ?? 0) >= HIGH_DIVIDEND_YIELD_THRESHOLD &&
                   "text-emerald-700 dark:text-emerald-500",
               )}
             >
@@ -185,7 +206,7 @@ const StockDetailPage = async ({ params }: StockDetailPageProps) => {
           <h3 className="text-lg font-bold mb-4 uppercase tracking-widest">
             総合スコア
           </h3>
-          <CircleScoreGage score={stock.totalScore} maxScore={40} />
+          <CircleScoreGage score={stock.totalScore} maxScore={MAX_TOTAL_SCORE} />
         </div>
 
         {/* 右側: 項目ごとのスコア */}
