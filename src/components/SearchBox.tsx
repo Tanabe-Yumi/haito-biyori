@@ -7,7 +7,7 @@ import {
   InputGroupAddon,
   InputGroupInput,
 } from "@/components/ui/input-group";
-import { useSearchParam } from "@/hooks/use-search-params";
+import { useStockListParams } from "@/hooks/use-search-params";
 
 interface SearchBoxProps {
   isLoading: boolean;
@@ -15,12 +15,12 @@ interface SearchBoxProps {
 
 const SearchBox = ({ isLoading }: SearchBoxProps) => {
   const [search, setSearch] = useState("");
-  const [query, setQuery] = useSearchParam("search");
+  const [, setParams] = useStockListParams();
   const searchRef = useRef<HTMLInputElement>(null);
 
   const handleSubmit = (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setQuery(search.trim());
+    setParams({ search: search.trim() });
   };
 
   return (

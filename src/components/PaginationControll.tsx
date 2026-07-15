@@ -5,18 +5,17 @@ import {
   ChevronsRightIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useSearchParam } from "@/hooks/use-search-params";
+import { useStockListParams } from "@/hooks/use-search-params";
 
 interface PaginationControllProps {
   total: number;
 }
 
 const PaginationControll = ({ total }: PaginationControllProps) => {
-  const [page, setPage] = useSearchParam("page");
-  const [rows] = useSearchParam("rows");
-  const currentPage = parseInt(page) - 1 || 0;
-  const currentRows = parseInt(rows) || 10;
-  const totalPages = Math.ceil(total / currentRows);
+  const [{ page, rows }, setParams] = useStockListParams();
+  // 0 基準のページ番号に直す
+  const currentPage = page - 1;
+  const totalPages = Math.ceil(total / rows);
 
   const setPageQuery = (page: number) => {
     // 画面表示と同じ値をクエリに設定 (1 ~ totalPages)
@@ -27,7 +26,7 @@ const PaginationControll = ({ total }: PaginationControllProps) => {
       newPage = totalPages;
     }
 
-    setPage(newPage.toString());
+    setParams({ page: newPage });
   };
 
   return (

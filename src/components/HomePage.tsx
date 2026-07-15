@@ -34,7 +34,11 @@ export const HomePage = () => {
     // アドレスバーの URL を正規の順序に置き換える
     // nuqs は操作した順にパラメータを書き込むため、順序をスキーマの定義順に揃える
     // (replaceState なので履歴は増えない)
-    if (searchParams.toString() !== normalizedQuery) {
+    // 比較は URLSearchParams を通し、"," と "%2C" のようなエンコード差を無視する
+    const isSameQuery =
+      new URLSearchParams(normalizedQuery).toString() ===
+      searchParams.toString();
+    if (!isSameQuery) {
       window.history.replaceState(
         null,
         "",

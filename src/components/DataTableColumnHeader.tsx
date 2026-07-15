@@ -13,8 +13,8 @@ import {
   DropdownMenuRadioItem,
   DropdownMenuCheckboxItem,
 } from "@/components/ui/dropdown-menu";
-import { useSearchParam } from "@/hooks/use-search-params";
-import { StockListParamName } from "@/lib/stockListParams";
+import { useStockListParams } from "@/hooks/use-search-params";
+import { StockListValues } from "@/lib/stockListParams";
 
 interface UniChoice {
   id: number;
@@ -28,7 +28,8 @@ interface DataTableColumnHeaderFilterableUniProps<
 > extends React.HTMLAttributes<HTMLDivElement> {
   column: Column<TData, TValue>;
   title: string;
-  paramName: StockListParamName;
+  // 単一選択は数値 (0 = 全て) のパラメータのみ
+  paramName: "yield" | "score";
   choices: UniChoice[];
 }
 
@@ -40,17 +41,23 @@ export function DataTableColumnHeaderFilterableUni<TData, TValue>({
   paramName,
   choices,
 }: DataTableColumnHeaderFilterableUniProps<TData, TValue>) {
-  const [param, setParam] = useSearchParam(paramName);
+  const [params, setParams] = useStockListParams();
+  const param = params[paramName];
   if (!column.getCanFilter()) {
     return <div className={cn(className)}>{title}</div>;
   }
+
+  const setParam = (newValue: number) => {
+    // paramName は "yield" | "score" に限定されるため number の設定は型安全
+    setParams({ [paramName]: newValue } as Partial<StockListValues>);
+  };
 
   const handleChange = (newValue: string) => {
     if (!newValue) {
       return;
     }
 
-    setParam(newValue);
+    setParam(Number(newValue));
   };
 
   return (
@@ -67,7 +74,7 @@ export function DataTableColumnHeaderFilterableUni<TData, TValue>({
             <FilterIcon
               className={cn(
                 "size-4 ml-1 stroke-amber-400",
-                param && "fill-amber-400",
+                param !== 0 && "fill-amber-400",
               )}
             />
           </Button>
@@ -79,13 +86,16 @@ export function DataTableColumnHeaderFilterableUni<TData, TValue>({
               <Button
                 variant="ghost"
                 className="h-4 w-4"
-                onClick={() => setParam("")}
+                onClick={() => setParam(0)}
                 aria-label={`${title}のフィルターを解除`}
               >
                 <CircleMinusIcon className="size-4" />
               </Button>
             </DropdownMenuLabel>
-            <DropdownMenuRadioGroup value={param} onValueChange={handleChange}>
+            <DropdownMenuRadioGroup
+              value={String(param)}
+              onValueChange={handleChange}
+            >
               {choices.map((choice) => (
                 <DropdownMenuRadioItem key={choice.id} value={choice.value}>
                   {choice.label}
@@ -110,7 +120,8 @@ interface DataTableColumnHeaderFilterableMultiProps<
 > extends React.HTMLAttributes<HTMLDivElement> {
   column: Column<TData, TValue>;
   title: string;
-  paramName: StockListParamName;
+  // 複数選択は ID リスト (number[]) のパラメータのみ
+  paramName: "market" | "industry";
   choices: MultiChoice[];
 }
 
@@ -122,26 +133,28 @@ export function DataTableColumnHeaderFilterableMulti<TData, TValue>({
   paramName,
   choices,
 }: DataTableColumnHeaderFilterableMultiProps<TData, TValue>) {
-  const [param, setParam] = useSearchParam(paramName);
+  const [params, setParams] = useStockListParams();
+  const param = params[paramName];
 
   if (!column.getCanFilter()) {
     return <div className={cn(className)}>{title}</div>;
   }
+
+  const setParam = (newValues: number[]) => {
+    // paramName は "market" | "industry" に限定されるため number[] の設定は型安全
+    setParams({ [paramName]: newValues } as Partial<StockListValues>);
+  };
 
   const toggleChecked = (additionalValue: number) => {
     if (!additionalValue) {
       return;
     }
 
-    const currentValues = param
-      .split(",")
-      .filter((p) => p !== "")
-      .map((p) => parseInt(p));
     // パラメータ変更
-    if (currentValues.includes(additionalValue)) {
-      setParam(currentValues.filter((v) => v !== additionalValue).join(","));
+    if (param.includes(additionalValue)) {
+      setParam(param.filter((v) => v !== additionalValue));
     } else {
-      setParam([...currentValues, additionalValue].join(","));
+      setParam([...param, additionalValue]);
     }
   };
 
@@ -159,7 +172,7 @@ export function DataTableColumnHeaderFilterableMulti<TData, TValue>({
             <FilterIcon
               className={cn(
                 "size-4 ml-1 stroke-amber-400",
-                param && "fill-amber-400",
+                param.length !== 0 && "fill-amber-400",
               )}
             />
           </Button>
@@ -171,7 +184,7 @@ export function DataTableColumnHeaderFilterableMulti<TData, TValue>({
               <Button
                 variant="ghost"
                 className="h-4 w-4"
-                onClick={() => setParam("")}
+                onClick={() => setParam([])}
                 aria-label={`${title}のフィルターを解除`}
               >
                 <CircleMinusIcon className="size-4" />
@@ -180,10 +193,7 @@ export function DataTableColumnHeaderFilterableMulti<TData, TValue>({
             {choices.map((choice) => (
               <DropdownMenuCheckboxItem
                 key={choice.id}
-                checked={param
-                  .split(",")
-                  .map((p) => parseInt(p))
-                  .includes(choice.id)}
+                checked={param.includes(choice.id)}
                 onCheckedChange={() => toggleChecked(choice.id)}
               >
                 {choice.value}

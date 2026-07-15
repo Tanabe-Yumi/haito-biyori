@@ -6,24 +6,8 @@ import { StockWithScores } from "@/types/stock";
 export async function GET(request: NextRequest) {
   const requestLimit = 1000;
 
-  // パラメータ取り出し (短縮キー q, m, i, y, s を論理名で受け取る)
+  // パラメータ取り出し (短縮キー q, m, i, y, s を論理名・型付きで受け取る)
   const params = loadStockListParams(request.nextUrl.searchParams);
-
-  // 引数用の変数準備
-  const markets = params.market
-    ? params.market
-        .split(",")
-        .filter((m) => m !== "")
-        .map((m) => parseInt(m))
-    : null;
-  const industries = params.industry
-    ? params.industry
-        .split(",")
-        .filter((m) => m !== "")
-        .map((m) => parseInt(m))
-    : null;
-  const minYield = params.yield ? parseFloat(params.yield) : null;
-  const minScore = params.score ? parseFloat(params.score) : null;
 
   let results: StockWithScores[] = [];
   let getCount = 0;
@@ -34,10 +18,10 @@ export async function GET(request: NextRequest) {
   while (getCount < _totalCount) {
     const { stocks, totalCount } = await getStocksWithScores(
       params.search || null,
-      markets,
-      industries,
-      minYield,
-      minScore,
+      params.market,
+      params.industry,
+      params.yield || null,
+      params.score || null,
       page,
       requestLimit,
     );

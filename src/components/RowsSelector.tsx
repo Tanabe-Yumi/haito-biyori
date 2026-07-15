@@ -5,24 +5,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useSearchParam } from "@/hooks/use-search-params";
+import { useStockListParams } from "@/hooks/use-search-params";
 
 const RowsSelector = () => {
-  const [page, setPage] = useSearchParam("page");
-  const [rows, setRows] = useSearchParam("rows");
-  const currentRows = parseInt(rows) || 10;
+  const [{ rows }, setParams] = useStockListParams();
 
   return (
     <div className="flex items-center space-x-2">
       <Select
-        value={`${currentRows}`}
+        value={`${rows}`}
         onValueChange={(row) => {
-          setPage(`${1}`);
-          setRows(row);
+          // 表示件数の変更時は 1 ページ目に戻す
+          setParams({ page: 1, rows: parseInt(row) });
         }}
       >
         <SelectTrigger className="h-8 w-24">
-          <SelectValue placeholder={`${currentRows} 件`} />
+          <SelectValue placeholder={`${rows} 件`} />
         </SelectTrigger>
         <SelectContent side="top">
           {[5, 10, 25, 50, 75, 100].map((pageSize) => (

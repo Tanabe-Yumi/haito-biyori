@@ -20,7 +20,7 @@ import {
 import SearchBox from "@/components/SearchBox";
 import PaginationControll from "@/components/PaginationControll";
 import RowsSelector from "@/components/RowsSelector";
-import { useSearchParam } from "@/hooks/use-search-params";
+import { useStockListParams } from "@/hooks/use-search-params";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -35,11 +35,10 @@ export function DataTable<TData, TValue>({
   total,
   isLoading,
 }: DataTableProps<TData, TValue>) {
-  const [page] = useSearchParam("page");
-  const [rows] = useSearchParam("rows");
-  const currentPage = parseInt(page) - 1 || 0;
-  const currentRows = parseInt(rows) || 10;
-  const from = currentPage * currentRows + 1;
+  const [{ page, rows }] = useStockListParams();
+  // 0 基準のページ番号に直す
+  const currentPage = page - 1;
+  const from = currentPage * rows + 1;
   const to = from + data.length - 1;
 
   // 表示カラム変更
