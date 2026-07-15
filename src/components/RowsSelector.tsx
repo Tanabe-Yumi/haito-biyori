@@ -6,6 +6,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useStockListParams } from "@/hooks/use-search-params";
+import { ROWS_PER_PAGE_OPTIONS } from "@/constants/table";
 
 const RowsSelector = () => {
   const [{ rows }, setParams] = useStockListParams();
@@ -23,7 +24,7 @@ const RowsSelector = () => {
           <SelectValue placeholder={`${rows} 件`} />
         </SelectTrigger>
         <SelectContent side="top">
-          {[5, 10, 25, 50, 75, 100].map((pageSize) => (
+          {ROWS_PER_PAGE_OPTIONS.map((pageSize) => (
             <SelectItem key={pageSize} value={`${pageSize}`}>
               {pageSize} 件
             </SelectItem>

@@ -1,4 +1,5 @@
-export const headers = [
+// CSV のヘッダー行
+export const csvHeaders = [
   "コード",
   "名前",
   "市場",
@@ -16,3 +17,6 @@ export const headers = [
   "現金等スコア",
   "最終更新日",
 ];
+
+// エクスポート時に一度に取得する件数
+export const EXPORT_BATCH_SIZE = 1000;

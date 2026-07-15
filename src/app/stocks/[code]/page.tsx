@@ -30,6 +30,8 @@ import {
   loadStockListParams,
   serializeStockListParams,
 } from "@/lib/stockListParams";
+import { MAX_TOTAL_SCORE } from "@/constants/score";
+import { HIGH_DIVIDEND_YIELD_THRESHOLD } from "@/constants/stock";
 
 interface StockDetailPageProps {
   params: Promise<{ code: string }>;
@@ -185,7 +187,7 @@ const StockDetailPage = async ({
             <p
               className={cn(
                 "text-2xl font-bold text-right",
-                (stock.dividendYield ?? 0) >= 3.75 &&
+                (stock.dividendYield ?? 0) >= HIGH_DIVIDEND_YIELD_THRESHOLD &&
                   "text-emerald-700 dark:text-emerald-500",
               )}
             >
@@ -204,7 +206,7 @@ const StockDetailPage = async ({
           <h3 className="text-lg font-bold mb-4 uppercase tracking-widest">
             総合スコア
           </h3>
-          <CircleScoreGage score={stock.totalScore} maxScore={40} />
+          <CircleScoreGage score={stock.totalScore} maxScore={MAX_TOTAL_SCORE} />
         </div>
 
         {/* 右側: 項目ごとのスコア */}

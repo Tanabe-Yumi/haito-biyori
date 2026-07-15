@@ -9,7 +9,7 @@ import { DownloadIcon } from "lucide-react";
 
 import { StockDashboard } from "@/components/StockDashboard";
 import { Button } from "@/components/ui/button";
-import { headers } from "@/constants/csvHeader";
+import { csvHeaders } from "@/constants/csv";
 import { downloadCsv } from "@/lib/downloadCsv";
 import { StockWithTotalScore } from "@/types/stock";
 
@@ -79,7 +79,7 @@ export const HomePage = () => {
           })
             .then((res) => res.json())
             .then((data) => {
-              downloadCsv(headers, data);
+              downloadCsv(csvHeaders, data);
               resolve("success");
             })
             .catch((e) => {

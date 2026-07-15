@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getStocksWithScores } from "@/lib/api";
 import { loadStockListParams } from "@/lib/stockListParams";
+import { EXPORT_BATCH_SIZE } from "@/constants/csv";
 import { StockWithScores } from "@/types/stock";
 
 export async function GET(request: NextRequest) {
-  const requestLimit = 1000;
-
   // パラメータ取り出し (短縮キー q, m, i, y, s を論理名・型付きで受け取る)
   const params = loadStockListParams(request.nextUrl.searchParams);
 
@@ -23,7 +22,7 @@ export async function GET(request: NextRequest) {
       params.yield || null,
       params.score || null,
       page,
-      requestLimit,
+      EXPORT_BATCH_SIZE,
     );
 
     results = [...results, ...stocks];
