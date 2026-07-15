@@ -1,39 +1,32 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getStocksWithTotalScore } from "@/lib/api";
+import { loadStockListParams } from "@/lib/stockListParams";
 
 export async function GET(request: NextRequest) {
-  const searchParams = request.nextUrl.searchParams;
-
-  // パラメータ取り出し
-  const searchParam = searchParams.get("search");
-  const marketParam = searchParams.get("market");
-  const industryParam = searchParams.get("industry");
-  const minYieldParam = searchParams.get("yield");
-  const minScoreParam = searchParams.get("score");
-  const pageParam = searchParams.get("page");
-  const rowsParam = searchParams.get("rows");
+  // パラメータ取り出し (短縮キー q, m, i, y, s, p, r を論理名で受け取る)
+  const params = loadStockListParams(request.nextUrl.searchParams);
 
   // 引数用の変数準備
-  const markets = marketParam
-    ? marketParam
+  const markets = params.market
+    ? params.market
         .split(",")
         .filter((m) => m !== "")
         .map((m) => parseInt(m))
     : null;
-  const industries = industryParam
-    ? industryParam
+  const industries = params.industry
+    ? params.industry
         .split(",")
         .filter((m) => m !== "")
         .map((m) => parseInt(m))
     : null;
-  const minYield = minYieldParam ? parseFloat(minYieldParam) : null;
-  const minScore = minScoreParam ? parseFloat(minScoreParam) : null;
+  const minYield = params.yield ? parseFloat(params.yield) : null;
+  const minScore = params.score ? parseFloat(params.score) : null;
   // 0 基準のページ番号に直す
-  const page = pageParam ? parseInt(pageParam) - 1 : null;
-  const rows = rowsParam ? parseInt(rowsParam) : null;
+  const page = params.page ? parseInt(params.page) - 1 : null;
+  const rows = params.rows ? parseInt(params.rows) : null;
 
   const result = await getStocksWithTotalScore(
-    searchParam,
+    params.search || null,
     markets,
     industries,
     minYield,

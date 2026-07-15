@@ -14,6 +14,7 @@ import {
   DropdownMenuCheckboxItem,
 } from "@/components/ui/dropdown-menu";
 import { useSearchParam } from "@/hooks/use-search-params";
+import { StockListParamName } from "@/lib/stockListParams";
 
 interface UniChoice {
   id: number;
@@ -27,7 +28,7 @@ interface DataTableColumnHeaderFilterableUniProps<
 > extends React.HTMLAttributes<HTMLDivElement> {
   column: Column<TData, TValue>;
   title: string;
-  paramName: string;
+  paramName: StockListParamName;
   choices: UniChoice[];
 }
 
@@ -109,7 +110,7 @@ interface DataTableColumnHeaderFilterableMultiProps<
 > extends React.HTMLAttributes<HTMLDivElement> {
   column: Column<TData, TValue>;
   title: string;
-  paramName: string;
+  paramName: StockListParamName;
   choices: MultiChoice[];
 }
 

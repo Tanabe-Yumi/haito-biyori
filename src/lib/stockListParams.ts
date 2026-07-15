@@ -12,28 +12,54 @@ export const stockListParams = {
   rows: parseAsString.withDefault(""),
 };
 
-// クエリを正規の順序で直列化する (デフォルト値 "" のキーは省略される)
+// 論理名 → URL 上の短縮キー
+// URL を短く保つため1文字にする (search は検索クエリの慣習に合わせて q)
+export const stockListUrlKeys = {
+  search: "q",
+  market: "m",
+  industry: "i",
+  yield: "y",
+  score: "s",
+  page: "p",
+  rows: "r",
+} as const satisfies Record<keyof typeof stockListParams, string>;
+
+export type StockListParamName = keyof typeof stockListUrlKeys;
+
+// クエリを正規の順序・短縮キーで直列化する (デフォルト値 "" のキーは省略される)
 // canonical URL や内部リンクの組み立てに使い、同条件のURLを常に同一文字列にする
-export const serializeStockListParams = createSerializer(stockListParams);
+export const serializeStockListParams = createSerializer(stockListParams, {
+  urlKeys: stockListUrlKeys,
+});
 
 // searchParams から既知のキーだけを型付きで取り出すローダー (未知のキーは無視される)
-export const loadStockListParams = createLoader(stockListParams);
+export const loadStockListParams = createLoader(stockListParams, {
+  urlKeys: stockListUrlKeys,
+});
 
-// クエリ文字列を正規の順序に並べ直す
-// 既知のキーを定義順に並べ、未知のキーはそのまま末尾に残す
+// クエリ文字列を正規の形に並べ直す
+// - 既知のキーを定義順・短縮キーに揃える
+// - 旧形式のフル名キー (search= など) は短縮キーに変換する (ブックマーク互換)
+// - 未知のキーはそのまま末尾に残す
 // ブラウザのアドレスバーの URL 表示 (nuqs は操作順に書き込むため) の正規化に使う
 export function normalizeStockListQuery(params: URLSearchParams): string {
   const normalized = new URLSearchParams();
 
-  for (const key of Object.keys(stockListParams)) {
-    for (const value of params.getAll(key)) {
+  for (const [name, urlKey] of Object.entries(stockListUrlKeys)) {
+    // 短縮キーを優先しつつ、旧形式のフル名キーも受け付ける
+    for (const value of [...params.getAll(urlKey), ...params.getAll(name)]) {
       if (value !== "") {
-        normalized.append(key, value);
+        normalized.append(urlKey, value);
       }
     }
   }
+
+  const knownKeys = new Set<string>([
+    ...Object.keys(stockListUrlKeys),
+    ...Object.values(stockListUrlKeys),
+  ]);
   for (const [key, value] of params) {
-    if (!(key in stockListParams)) {
+    if (!knownKeys.has(key)) {
       normalized.append(key, value);
     }
   }
