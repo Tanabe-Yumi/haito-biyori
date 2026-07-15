@@ -33,9 +33,21 @@ function createSqlite(): Database.Database {
   return db;
 }
 
+// 検索用の文字列正規化
+// NFKC で全角英数字を半角に揃え (半角カナは全角に揃う)、小文字化する
+// SQL 関数 normalize_search と検索入力の両方でこの関数を使い、比較の基準を一致させる
+export function normalizeSearchText(text: string): string {
+  return text.normalize("NFKC").toLowerCase();
+}
+
 // better-sqlite3 の生接続 (スクリプトなど生SQLを使う場面用)
 export const sqlite = globalForDb.sqlite ?? createSqlite();
 globalForDb.sqlite = sqlite;
+
+// SQL から呼べる正規化関数を登録 (検索クエリで code/name の正規化に使う)
+sqlite.function("normalize_search", { deterministic: true }, (text) =>
+  typeof text === "string" ? normalizeSearchText(text) : null,
+);
 
 // Kysely インスタンス (アプリからのクエリはこちらを使う)
 // 型定義 (src/types/db.ts) は実DBから自動生成: npm run db:codegen
