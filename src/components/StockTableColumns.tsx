@@ -2,6 +2,7 @@
 
 import { ColumnDef } from "@tanstack/react-table";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 
 import { StockWithTotalScore } from "@/types/stock";
 import { Market } from "@/types/market";
@@ -13,6 +14,22 @@ import {
 } from "@/components/DataTableColumnHeader";
 import { dividendYieldRange } from "@/constants/stock";
 import { scoreRanges } from "@/constants/score";
+
+// 企業名のリンク
+// 現在の検索条件 (クエリ文字列) を詳細ページへ引き継ぎ、「一覧に戻る」で復元できるようにする
+function StockNameLink({ code, name }: { code: string; name: string }) {
+  const searchParams = useSearchParams();
+  const query = searchParams.toString();
+
+  return (
+    <Link
+      href={query ? `/stocks/${code}?${query}` : `/stocks/${code}`}
+      className="hover:underline font-extrabold hover:text-emerald-600 hover:font-bold decoration-emerald-500/50 underline-offset-4 decoration-2 block transition-all"
+    >
+      {name}
+    </Link>
+  );
+}
 
 // TODO: カラム幅を固定したい
 
@@ -36,12 +53,7 @@ export const columns = (
       accessorKey: "name",
       header: "企業名",
       cell: ({ row }) => (
-        <Link
-          href={`/stocks/${row.original.code}`}
-          className="hover:underline font-extrabold hover:text-emerald-600 hover:font-bold decoration-emerald-500/50 underline-offset-4 decoration-2 block transition-all"
-        >
-          {row.getValue("name")}
-        </Link>
+        <StockNameLink code={row.original.code} name={row.getValue("name")} />
       ),
     },
     {

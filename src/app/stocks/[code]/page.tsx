@@ -29,6 +29,7 @@ import Link from "next/link";
 
 interface StockDetailPageProps {
   params: Promise<{ code: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }
 
 // ブラウザのタブ名を変更
@@ -40,8 +41,24 @@ export async function generateMetadata({ params }: StockDetailPageProps) {
   };
 }
 
-const StockDetailPage = async ({ params }: StockDetailPageProps) => {
+const StockDetailPage = async ({
+  params,
+  searchParams,
+}: StockDetailPageProps) => {
   const { code } = await params;
+
+  // 一覧ページから引き継いだ検索条件
+  // 「一覧に戻る」でクエリ文字列ごと一覧へ戻し、検索条件を復元する
+  const listQuery = new URLSearchParams();
+  for (const [key, value] of Object.entries(await searchParams)) {
+    if (typeof value === "string") {
+      listQuery.set(key, value);
+    } else if (Array.isArray(value)) {
+      value.forEach((v) => listQuery.append(key, v));
+    }
+  }
+  const backHref = listQuery.size !== 0 ? `/?${listQuery}` : "/";
+
   const stock = await getStockWithScoresByCode(code).catch((e) =>
     console.error(e),
   );
@@ -121,9 +138,8 @@ const StockDetailPage = async ({ params }: StockDetailPageProps) => {
 
   return (
     <div className="max-w-4xl mx-auto p-4 pt-0 md:p-8 md:pt-0 space-y-6">
-      {/* TODO: ページやフィルターも前のを引き継いだ状態で戻る */}
       <Link
-        href="/"
+        href={backHref}
         className="inline-flex items-center text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
       >
         <ArrowLeft className="mr-2 h-4 w-4" />
