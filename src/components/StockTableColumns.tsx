@@ -26,6 +26,10 @@ function StockNameLink({ code, name }: { code: string; name: string }) {
       href={query ? `/stocks/${code}?${query}` : `/stocks/${code}`}
       className="hover:underline font-extrabold hover:text-emerald-600 hover:font-bold decoration-emerald-500/50 underline-offset-4 decoration-2 block transition-all"
     >
+      {/* コードを銘柄名の上に小さく表示 */}
+      <span className="block text-xs font-medium text-muted-foreground">
+        {code}
+      </span>
       {name}
     </Link>
   );
@@ -33,22 +37,16 @@ function StockNameLink({ code, name }: { code: string; name: string }) {
 
 // TODO: カラム幅を固定したい
 
-// TODO: 画面サイズに応じて表示する項目を変更
+// 画面幅が小さいときに優先度の低い列を隠すためのクラス (meta.className として th/td に付与)
+// 常時表示: 企業名・配当利回り・スコア
+const showFromSm = "hidden sm:table-cell";
+const showFromMd = "hidden md:table-cell";
 
 export const columns = (
   markets: Market[],
   industries: Industry[],
 ): ColumnDef<StockWithTotalScore>[] => {
   return [
-    {
-      accessorKey: "code",
-      header: () => <div className="text-center">コード</div>,
-      cell: ({ row }) => (
-        <div className="text-right font-medium px-4">
-          {row.getValue("code")}
-        </div>
-      ),
-    },
     {
       accessorKey: "name",
       header: "企業名",
@@ -58,6 +56,7 @@ export const columns = (
     },
     {
       accessorKey: "market",
+      meta: { className: showFromMd },
       header: ({ column }) => (
         <DataTableColumnHeaderFilterableMulti
           column={column}
@@ -84,6 +83,7 @@ export const columns = (
     },
     {
       accessorKey: "industry",
+      meta: { className: showFromMd },
       header: ({ column }) => (
         <DataTableColumnHeaderFilterableMulti
           column={column}
@@ -111,6 +111,7 @@ export const columns = (
     {
       accessorKey: "price",
       enableGlobalFilter: false,
+      meta: { className: showFromSm },
       header: () => <div className="text-center">現在値</div>,
       cell: ({ row }) => {
         const price = row.getValue("price") as number | undefined;
