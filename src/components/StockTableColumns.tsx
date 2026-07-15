@@ -115,14 +115,14 @@ export const columns = (
       header: () => <div className="text-center">現在値</div>,
       cell: ({ row }) => {
         const price = row.getValue("price") as number | undefined;
-        if (!price) return <div className="text-right px-4">-</div>;
+        if (!price) return <div className="text-center px-4">-</div>;
 
         const formatted = new Intl.NumberFormat("ja-JP", {
           style: "currency",
           currency: "JPY",
         }).format(price);
 
-        return <div className="text-right font-medium px-4">{formatted}</div>;
+        return <div className="text-center font-medium px-4">{formatted}</div>;
       },
     },
     {
@@ -139,8 +139,8 @@ export const columns = (
       ),
       cell: ({ row }) => {
         const yieldVal = row.getValue("dividendYield") as number | undefined;
-        if (!yieldVal) return <div className="text-right px-4">-</div>;
-        return <div className="text-right font-medium px-4">{yieldVal}%</div>;
+        if (!yieldVal) return <div className="text-center px-4">-</div>;
+        return <div className="text-center font-medium px-4">{yieldVal}%</div>;
       },
     },
     {

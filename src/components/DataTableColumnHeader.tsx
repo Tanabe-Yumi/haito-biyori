@@ -67,7 +67,7 @@ export function DataTableColumnHeaderFilterableUni<TData, TValue>({
           <Button
             variant="ghost"
             size="sm"
-            className="data-[state=open]:bg-accent -ml-3 h-8"
+            className="data-[state=open]:bg-accent h-8"
             aria-label={`${title}をフィルター`}
           >
             <span>{title}</span>
@@ -165,7 +165,7 @@ export function DataTableColumnHeaderFilterableMulti<TData, TValue>({
           <Button
             variant="ghost"
             size="sm"
-            className="data-[state=open]:bg-accent -ml-3 h-8"
+            className="data-[state=open]:bg-accent h-8"
             aria-label={`${title}をフィルター`}
           >
             <span>{title}</span>
