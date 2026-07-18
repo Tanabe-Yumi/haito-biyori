@@ -123,6 +123,14 @@ create table if not exists scores (
   updated_at              text    not null default (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
 );
 
+-- portfolio_items テーブル (ポートフォリオの保有予定銘柄)
+create table if not exists portfolio_items (
+  code       text    primary key references stocks(code) on delete cascade,
+  -- 保有予定株数 (1株単位)
+  shares     integer not null default 1 check (shares >= 0),
+  created_at text    not null default (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+);
+
 -- timestamp 自動更新トリガー
 create trigger if not exists handle_updated_at
   after update on stocks

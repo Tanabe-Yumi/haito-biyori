@@ -11,6 +11,7 @@ import { formatDate } from "@/lib/formatDate";
 import { HistoricalChartTabs } from "@/components/HistoricalChartTabs";
 import { CircleScoreGage } from "@/components/CircleScoreGage";
 import { HoverInfoCard } from "@/components/HoverInfoCard";
+import { PortfolioDetailButton } from "@/components/PortfolioDetailButton";
 import {
   ArrowLeft,
   BanknoteIcon,
@@ -31,6 +32,7 @@ import {
   serializeStockListParams,
 } from "@/lib/stockListParams";
 import { MAX_TOTAL_SCORE } from "@/constants/score";
+import { FROM_PARAM_KEY, FROM_PORTFOLIO } from "@/constants/portfolio";
 import { HIGH_DIVIDEND_YIELD_THRESHOLD } from "@/constants/stock";
 
 interface StockDetailPageProps {
@@ -58,11 +60,15 @@ const StockDetailPage = async ({
 }: StockDetailPageProps) => {
   const { code } = await params;
 
-  // 一覧ページから引き継いだ検索条件
-  // 「一覧に戻る」でクエリ文字列ごと一覧へ戻し、検索条件を復元する
-  // 正規の順序に並べ直して直列化する (未知のパラメータは除外される)
+  // 戻り先の決定
+  // - ポートフォリオから来た場合 (from=portfolio): ポートフォリオへ戻す
+  // - 一覧から来た場合: 引き継いだ検索条件を正規の順序で付けて一覧へ戻す
+  const fromPortfolio = (await searchParams)[FROM_PARAM_KEY] === FROM_PORTFOLIO;
   const listParams = await loadStockListParams(searchParams);
-  const backHref = serializeStockListParams("/", listParams);
+  const backHref = fromPortfolio
+    ? "/portfolio"
+    : serializeStockListParams("/", listParams);
+  const backLabel = fromPortfolio ? "ポートフォリオに戻る" : "一覧に戻る";
 
   const stock = await getStockWithScoresByCode(code).catch((e) =>
     console.error(e),
@@ -148,7 +154,7 @@ const StockDetailPage = async ({
         className="inline-flex items-center text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
       >
         <ArrowLeft className="mr-2 h-4 w-4" />
-        一覧に戻る
+        {backLabel}
       </Link>
 
       {/* 基本情報 */}
@@ -169,7 +175,9 @@ const StockDetailPage = async ({
             <h2 className="text-3xl font-bold">{stock.name}</h2>
             {/* TODO: 企業公式サイトへのリンク */}
           </div>
-          {/* TODO: お気に入り登録ボタン */}
+          <div>
+            <PortfolioDetailButton code={stock.code} />
+          </div>
         </div>
 
         <div className="flex items-center gap-6">

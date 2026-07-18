@@ -18,5 +18,19 @@ export const csvHeaders = [
   "最終更新日",
 ];
 
+// ポートフォリオ CSV のヘッダー行
+export const portfolioCsvHeaders = [
+  "コード",
+  "名前",
+  "業種",
+  "現在値",
+  "配当利回り",
+  "合計スコア",
+  "株数",
+  "購入金額",
+  "年間配当(税引前)",
+  "構成比(%)",
+];
+
 // エクスポート時に一度に取得する件数
 export const EXPORT_BATCH_SIZE = 1000;

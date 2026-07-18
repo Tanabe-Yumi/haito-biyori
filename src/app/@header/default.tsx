@@ -1,39 +1,28 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { SunIcon } from "lucide-react";
 
-import { pages } from "@/constants/page";
-import { HeaderMenu } from "@/components/HeaderMenu";
+import {
+  HeaderNavigation,
+  HeaderNavigationView,
+} from "@/components/HeaderNavigation";
 
 const Header = () => {
   return (
     <header className="sticky top-0 z-50 w-full border-b border-accent-foreground bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
-      <div className="container flex h-16 items-center justify-between px-4 md:px-8">
-        <div className="flex gap-6 md:gap-10">
-          <Link href="/" className="flex items-center space-x-2">
-            <SunIcon className="h-6 w-6 stroke-amber-400 fill-amber-400" />
-            <span className="inline-block font-bold text-xl tracking-tight">
-              配当<span className="text-amber-500">びより</span>
-            </span>
-          </Link>
-          {/* sm 以上ではナビゲーションをインライン表示 */}
-          <nav className="hidden sm:flex gap-6">
-            {pages.map((p) => (
-              <Link
-                key={p.label}
-                href={p.href}
-                className="flex items-center text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
-              >
-                <p.icon className="mr-2 h-4 w-4" />
-                {p.label}
-              </Link>
-            ))}
-          </nav>
-        </div>
+      <div className="container flex h-16 items-center gap-6 md:gap-10 px-4 md:px-8">
+        <Link href="/" className="flex items-center space-x-2">
+          <SunIcon className="h-6 w-6 stroke-amber-400 fill-amber-400" />
+          <span className="inline-block font-bold text-xl tracking-tight">
+            配当<span className="text-amber-500">びより</span>
+          </span>
+        </Link>
 
-        {/* sm 未満ではハンバーガーメニューに集約 */}
-        <div className="sm:hidden">
-          <HeaderMenu />
-        </div>
+        {/* ナビゲーション
+            銘柄一覧リンクは現在の検索条件を保持する (useSearchParams を使うため Suspense で包む) */}
+        <Suspense fallback={<HeaderNavigationView />}>
+          <HeaderNavigation />
+        </Suspense>
       </div>
     </header>
   );

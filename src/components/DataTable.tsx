@@ -21,6 +21,7 @@ import SearchBox from "@/components/SearchBox";
 import PaginationControll from "@/components/PaginationControll";
 import RowsSelector from "@/components/RowsSelector";
 import { StockFilterMenu } from "@/components/StockFilterMenu";
+import { PortfolioBulkAddButton } from "@/components/PortfolioBulkAddButton";
 import { useStockListParams } from "@/hooks/use-search-params";
 import { Market } from "@/types/market";
 import { Industry } from "@/types/industry";
@@ -32,6 +33,8 @@ interface DataTableProps<TData, TValue> {
   isLoading: boolean;
   markets: Market[];
   industries: Industry[];
+  // 表示中の銘柄コード (ポートフォリオへの一括追加用)
+  visibleCodes: string[];
 }
 
 export function DataTable<TData, TValue>({
@@ -41,6 +44,7 @@ export function DataTable<TData, TValue>({
   isLoading,
   markets,
   industries,
+  visibleCodes,
 }: DataTableProps<TData, TValue>) {
   const [{ page, rows }] = useStockListParams();
   // 0 基準のページ番号に直す
@@ -75,8 +79,13 @@ export function DataTable<TData, TValue>({
         <SearchBox isLoading={isLoading} />
 
         <div className="flex flex-1 items-center justify-between gap-2">
-          {/* 絞り込みメニュー */}
-          <StockFilterMenu markets={markets} industries={industries} />
+          <div className="flex items-center gap-2">
+            {/* 絞り込みメニュー */}
+            <StockFilterMenu markets={markets} industries={industries} />
+
+            {/* ポートフォリオへの一括追加 */}
+            <PortfolioBulkAddButton codes={visibleCodes} />
+          </div>
 
           {/* 表示行数セレクター */}
           <RowsSelector />

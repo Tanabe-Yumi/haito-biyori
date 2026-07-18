@@ -42,13 +42,13 @@ const AdminPage = () => {
   ];
 
   return (
-    <div className="container mx-auto py-10 px-4 md:px-8 max-w-5xl">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold tracking-tight mb-2 flex items-center gap-3">
-          <UserCogIcon className="w-8 h-8 text-primary" />
+    <div className="max-w-5xl mx-auto">
+      <div className="mb-8 space-y-2">
+        <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+          <UserCogIcon className="text-emerald-600 size-6" />
           管理者ページ
         </h1>
-        <p className="text-muted-foreground">
+        <p className="text-muted-foreground text-sm">
           データの更新などが可能です。書き換えが発生するため、注意して実行してください。
         </p>
       </div>

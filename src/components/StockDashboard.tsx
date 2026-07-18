@@ -7,6 +7,7 @@ import { Market } from "@/types/market";
 import { Industry } from "@/types/industry";
 import { DataTable } from "@/components/DataTable";
 import { columns } from "@/components/StockTableColumns";
+import { PortfolioProvider } from "@/components/PortfolioProvider";
 
 interface StockDashboardProps {
   stocks: StockWithTotalScore[];
@@ -43,17 +44,17 @@ export function StockDashboard({
 
   return (
     <div className="flex flex-col space-y-6">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <h2 className="text-2xl font-bold tracking-tight">銘柄一覧</h2>
-      </div>
-      <DataTable
-        columns={columns}
-        data={stocks}
-        total={total}
-        isLoading={isLoading}
-        markets={markets}
-        industries={industries}
-      />
+      <PortfolioProvider>
+        <DataTable
+          columns={columns}
+          data={stocks}
+          total={total}
+          isLoading={isLoading}
+          markets={markets}
+          industries={industries}
+          visibleCodes={stocks.map((s) => s.code)}
+        />
+      </PortfolioProvider>
     </div>
   );
 }

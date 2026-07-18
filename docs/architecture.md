@@ -54,6 +54,7 @@ flowchart LR
 │   ├── app/                  # ページと API (App Router)
 │   │   ├── page.tsx          # 一覧 (canonical 設定) → 実体は components/HomePage.tsx
 │   │   ├── stocks/[code]/    # 銘柄詳細
+│   │   ├── portfolio/        # ポートフォリオ (保有予定銘柄の調整)
 │   │   ├── admin/            # 管理者ページ (バッチ実行)
 │   │   ├── api/              # Route Handlers
 │   │   ├── error.tsx         # エラーページ
@@ -92,6 +93,7 @@ flowchart LR
 | テーブル | `stocks` | 銘柄 (コード・名前・株価・配当利回り) |
 | テーブル | `financial_history` | 決算データ (銘柄×年×月でユニーク) |
 | テーブル | `scores` | スコア (8項目 + 合計。銘柄ごとに1行) |
+| テーブル | `portfolio_items` | ポートフォリオの保有予定銘柄 (コード + 株数) |
 | ビュー | `stocks_with_total_score` | 一覧用 (stocks + マスタ + 合計スコア) |
 | ビュー | `stocks_with_scores` | 詳細・CSV用 (stocks + マスタ + 全スコア) |
 
@@ -167,6 +169,10 @@ npm run db:codegen   # 実DBから src/types/db.ts を再生成
 | `GET /api/stocks` | 一覧 (フィルタ・ページネーション対応) |
 | `GET /api/stocks/export` | CSV エクスポート用の全件取得 (1000件ずつ内部ページング) |
 | `GET /api/markets` / `GET /api/industries` | マスタ取得 |
+| `GET /api/portfolio` | ポートフォリオ一覧 (銘柄情報と結合済み) |
+| `POST /api/portfolio` | ポートフォリオに銘柄を追加 (body: `{ code }` または一括の `{ codes: [...] }`) |
+| `PATCH /api/portfolio/[code]` | 株数を更新 (body: `{ shares }`) |
+| `DELETE /api/portfolio/[code]` | ポートフォリオから銘柄を削除 |
 | `GET /api/exec/fetch-stocks` | 株価取得バッチの実行 (admin用・ストリーミング) |
 | `GET /api/exec/calc-scores` | スコア計算バッチの実行 (admin用・ストリーミング) |
 
@@ -206,6 +212,7 @@ python/venv/bin/python python/calculateScores.py    # financial_history から�
 
 - **一覧ページ** — `app/page.tsx` はサーバーコンポーネント (canonical 生成のため)。実体はクライアントの `HomePage.tsx` で、URL の変更を監視して `/api/stocks` をフェッチする。検索はデバウンス付きインクリメンタル (`SEARCH_DEBOUNCE_MS`)
 - **詳細ページ** — 一覧から遷移する際にクエリ文字列を引き継ぎ、「一覧に戻る」で検索条件ごと復元する (`router.back()` ではなく URL ベースなので新しいタブやリロードでも壊れない)
+- **ポートフォリオ** — 保有予定銘柄は DB (`portfolio_items`) に永続化。一覧の各行の「＋」ボタン・「表示中を全て追加」ボタン・詳細ページのボタンで追加/削除でき、一覧での登録状態は `PortfolioProvider` (React Context) が一括保持する。`/portfolio` ページで株数を1株単位で調整し、購入金額・年間配当 (税引前)・PF利回り (加重平均)・業種数を現在値ベースで自動計算する。業種分散は構成比順の横バーで表示し、1業種が `INDUSTRY_CONCENTRATION_WARNING_RATIO` (25%) を超えると警告を出す
 - **レスポンシブ方針**:
   - テーブルは TanStack Table の `meta.className` で列を出し分け (`hidden sm:table-cell` など)。
     常時表示は「企業名 (コード・モバイルでは市場/業種バッジ付き)・配当利回り・スコア」

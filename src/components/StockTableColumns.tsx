@@ -6,11 +6,12 @@ import { useSearchParams } from "next/navigation";
 
 import { StockWithTotalScore } from "@/types/stock";
 import { Badge } from "@/components/ui/badge";
+import { PortfolioToggleButton } from "@/components/PortfolioToggleButton";
 
-// バッジの配色 (デスクトップの列とモバイルの企業名セル内で共通)
-const marketBadgeClass =
+// バッジの配色 (一覧のセル内とポートフォリオページで共通)
+export const marketBadgeClass =
   "bg-purple-50 text-purple-700 dark:bg-purple-950 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900 border-purple-200 dark:border-purple-800";
-const industryBadgeClass =
+export const industryBadgeClass =
   "bg-sky-50 text-sky-700 dark:bg-sky-950 dark:text-sky-300 hover:bg-sky-100 dark:hover:bg-sky-900 border-sky-200 dark:border-sky-800";
 
 // 企業名のリンク
@@ -69,11 +70,13 @@ export const columns: ColumnDef<StockWithTotalScore>[] = [
       header: () => <div className="text-center">市場</div>,
       cell: ({ row }) => {
         const market = row.getValue("market") as string;
-        if (!market) return <div className="px-4">-</div>;
+        if (!market) return <div className="text-center px-4">-</div>;
         return (
-          <Badge variant="secondary" className={marketBadgeClass}>
-            {market}
-          </Badge>
+          <div className="text-center">
+            <Badge variant="secondary" className={marketBadgeClass}>
+              {market}
+            </Badge>
+          </div>
         );
       },
     },
@@ -83,11 +86,13 @@ export const columns: ColumnDef<StockWithTotalScore>[] = [
       header: () => <div className="text-center">業種</div>,
       cell: ({ row }) => {
         const industry = row.getValue("industry") as string;
-        if (!industry) return <div className="px-4">-</div>;
+        if (!industry) return <div className="text-center px-4">-</div>;
         return (
-          <Badge variant="secondary" className={industryBadgeClass}>
-            {industry}
-          </Badge>
+          <div className="text-center">
+            <Badge variant="secondary" className={industryBadgeClass}>
+              {industry}
+            </Badge>
+          </div>
         );
       },
     },
@@ -133,5 +138,15 @@ export const columns: ColumnDef<StockWithTotalScore>[] = [
         );
       },
       accessorFn: (row) => row.totalScore,
+    },
+    {
+      id: "portfolio",
+      enableGlobalFilter: false,
+      header: () => <div className="text-center">PF</div>,
+      cell: ({ row }) => (
+        <div className="text-center">
+          <PortfolioToggleButton code={row.original.code} />
+        </div>
+      ),
     },
 ];

@@ -10,6 +10,7 @@ import {
 } from "@/types/stock";
 import { Market } from "@/types/market";
 import { Industry } from "@/types/industry";
+import { PortfolioStock } from "@/types/portfolio";
 
 // TODO: エラーハンドリング
 
@@ -300,4 +301,58 @@ export async function getIndustries(): Promise<Industry[]> {
   });
 
   return industries;
+}
+
+// ポートフォリオの保有予定銘柄を取得
+// スコアなしの銘柄も表示するため、ビューではなくテーブルを直接 join する
+export async function getPortfolioStocks(): Promise<PortfolioStock[]> {
+  const data = await db
+    .selectFrom("portfolio_items")
+    .innerJoin("stocks", "stocks.code", "portfolio_items.code")
+    .leftJoin("industries", "industries.id", "stocks.industry")
+    .leftJoin("scores", "scores.code", "stocks.code")
+    .select([
+      "portfolio_items.code as code",
+      "stocks.name as name",
+      "industries.name as industry",
+      "stocks.price as price",
+      "stocks.dividend_yield as dividendYield",
+      "scores.total as totalScore",
+      "portfolio_items.shares as shares",
+    ])
+    // 追加した順で安定させる
+    .orderBy("portfolio_items.created_at")
+    .execute();
+
+  return data;
+}
+
+// ポートフォリオに銘柄を追加 (追加済みの銘柄は何もしない)
+export async function addPortfolioStocks(codes: string[]): Promise<void> {
+  if (codes.length === 0) {
+    return;
+  }
+
+  await db
+    .insertInto("portfolio_items")
+    .values(codes.map((code) => ({ code })))
+    .onConflict((oc) => oc.doNothing())
+    .execute();
+}
+
+// ポートフォリオの株数を更新
+export async function updatePortfolioShares(
+  code: string,
+  shares: number,
+): Promise<void> {
+  await db
+    .updateTable("portfolio_items")
+    .set({ shares })
+    .where("code", "=", code)
+    .execute();
+}
+
+// ポートフォリオから銘柄を削除
+export async function removePortfolioStock(code: string): Promise<void> {
+  await db.deleteFrom("portfolio_items").where("code", "=", code).execute();
 }

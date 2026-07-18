@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 
 import { normalizeStockListQuery } from "@/lib/stockListParams";
 import { toast } from "sonner";
-import { DownloadIcon } from "lucide-react";
+import { BarChart3, DownloadIcon } from "lucide-react";
 
 import { StockDashboard } from "@/components/StockDashboard";
 import { Button } from "@/components/ui/button";
@@ -98,11 +98,12 @@ export const HomePage = () => {
 
   return (
     <div className="space-y-8">
-      <section className="space-y-4">
-        <h1 className="text-3xl font-extrabold tracking-tight lg:text-4xl inline-block bg-linear-to-r from-emerald-600 to-teal-500 bg-clip-text text-transparent">
+      <section className="space-y-2">
+        <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+          <BarChart3 className="text-emerald-600 size-6" />
           高配当株スコアリング
         </h1>
-        <p className="text-foreground max-w-2xl text-lg">
+        <p className="text-muted-foreground text-sm">
           配当利回り3.5%以上の優良銘柄を8つの指標で厳選分析。スコアが高いほど健全な財務と高い還元期待を持てます。
         </p>
       </section>

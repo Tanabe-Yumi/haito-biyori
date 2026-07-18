@@ -6,6 +6,7 @@
       "markets.id": "number",
       "industries.id": "number",
       "stocks.code": "string",
+      "portfolio_items.code": "string",
       "scores.code": "string",
       "stocks_with_total_score.code": "string",
       "stocks_with_total_score.name": "string",
