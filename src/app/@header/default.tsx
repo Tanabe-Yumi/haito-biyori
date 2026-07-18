@@ -2,11 +2,12 @@ import Link from "next/link";
 import { SunIcon } from "lucide-react";
 
 import { pages } from "@/constants/page";
+import { HeaderMenu } from "@/components/HeaderMenu";
 
 const Header = () => {
   return (
     <header className="sticky top-0 z-50 w-full border-b border-accent-foreground bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
-      <div className="container flex h-16 items-center space-x-4 sm:justify-between sm:space-x-0 px-4 md:px-8">
+      <div className="container flex h-16 items-center justify-between px-4 md:px-8">
         <div className="flex gap-6 md:gap-10">
           <Link href="/" className="flex items-center space-x-2">
             <SunIcon className="h-6 w-6 stroke-amber-400 fill-amber-400" />
@@ -14,7 +15,8 @@ const Header = () => {
               配当<span className="text-amber-500">びより</span>
             </span>
           </Link>
-          <nav className="flex gap-6">
+          {/* sm 以上ではナビゲーションをインライン表示 */}
+          <nav className="hidden sm:flex gap-6">
             {pages.map((p) => (
               <Link
                 key={p.label}
@@ -26,6 +28,11 @@ const Header = () => {
               </Link>
             ))}
           </nav>
+        </div>
+
+        {/* sm 未満ではハンバーガーメニューに集約 */}
+        <div className="sm:hidden">
+          <HeaderMenu />
         </div>
       </div>
     </header>
