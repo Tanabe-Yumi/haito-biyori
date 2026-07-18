@@ -47,10 +47,12 @@ export function StockDashboard({
         <h2 className="text-2xl font-bold tracking-tight">銘柄一覧</h2>
       </div>
       <DataTable
-        columns={columns(markets, industries)}
+        columns={columns}
         data={stocks}
         total={total}
         isLoading={isLoading}
+        markets={markets}
+        industries={industries}
       />
     </div>
   );

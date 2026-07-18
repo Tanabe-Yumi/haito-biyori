@@ -5,78 +5,73 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 
 import { StockWithTotalScore } from "@/types/stock";
-import { Market } from "@/types/market";
-import { Industry } from "@/types/industry";
 import { Badge } from "@/components/ui/badge";
-import {
-  DataTableColumnHeaderFilterableMulti,
-  DataTableColumnHeaderFilterableUni,
-} from "@/components/DataTableColumnHeader";
-import { dividendYieldRange } from "@/constants/stock";
-import { scoreRanges } from "@/constants/score";
+
+// バッジの配色 (デスクトップの列とモバイルの企業名セル内で共通)
+const marketBadgeClass =
+  "bg-purple-50 text-purple-700 dark:bg-purple-950 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900 border-purple-200 dark:border-purple-800";
+const industryBadgeClass =
+  "bg-sky-50 text-sky-700 dark:bg-sky-950 dark:text-sky-300 hover:bg-sky-100 dark:hover:bg-sky-900 border-sky-200 dark:border-sky-800";
 
 // 企業名のリンク
 // 現在の検索条件 (クエリ文字列) を詳細ページへ引き継ぎ、「一覧に戻る」で復元できるようにする
-function StockNameLink({ code, name }: { code: string; name: string }) {
+function StockNameLink({ stock }: { stock: StockWithTotalScore }) {
   const searchParams = useSearchParams();
   const query = searchParams.toString();
+  const { code, name, market, industry } = stock;
 
   return (
-    <Link
-      href={query ? `/stocks/${code}?${query}` : `/stocks/${code}`}
-      className="hover:underline font-extrabold hover:text-emerald-600 hover:font-bold decoration-emerald-500/50 underline-offset-4 decoration-2 block transition-all"
-    >
-      {name}
-    </Link>
+    <div>
+      {/* コードを銘柄名の上に小さく表示 (リンクの外) */}
+      <div className="text-xs font-medium text-muted-foreground">{code}</div>
+      <Link
+        href={query ? `/stocks/${code}?${query}` : `/stocks/${code}`}
+        className="hover:underline font-extrabold hover:text-emerald-600 hover:font-bold decoration-emerald-500/50 underline-offset-4 decoration-2 block transition-all"
+      >
+        {name}
+      </Link>
+      {/* md 未満では市場・業種の列が消えるため、バッジで補完する
+          (リンクの外に置き、詳細ページへの遷移対象にしない) */}
+      {(market || industry) && (
+        <div className="mt-1 flex flex-wrap gap-1 md:hidden">
+          {market && (
+            <Badge variant="secondary" className={marketBadgeClass}>
+              {market}
+            </Badge>
+          )}
+          {industry && (
+            <Badge variant="secondary" className={industryBadgeClass}>
+              {industry}
+            </Badge>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
 
 // TODO: カラム幅を固定したい
 
-// TODO: 画面サイズに応じて表示する項目を変更
+// 画面幅が小さいときに優先度の低い列を隠すためのクラス (meta.className として th/td に付与)
+// 常時表示: 企業名・配当利回り・スコア
+const showFromSm = "hidden sm:table-cell";
+const showFromMd = "hidden md:table-cell";
 
-export const columns = (
-  markets: Market[],
-  industries: Industry[],
-): ColumnDef<StockWithTotalScore>[] => {
-  return [
-    {
-      accessorKey: "code",
-      header: () => <div className="text-center">コード</div>,
-      cell: ({ row }) => (
-        <div className="text-right font-medium px-4">
-          {row.getValue("code")}
-        </div>
-      ),
-    },
+export const columns: ColumnDef<StockWithTotalScore>[] = [
     {
       accessorKey: "name",
       header: "企業名",
-      cell: ({ row }) => (
-        <StockNameLink code={row.original.code} name={row.getValue("name")} />
-      ),
+      cell: ({ row }) => <StockNameLink stock={row.original} />,
     },
     {
       accessorKey: "market",
-      header: ({ column }) => (
-        <DataTableColumnHeaderFilterableMulti
-          column={column}
-          title="市場"
-          paramName="market"
-          choices={markets.map((m) => {
-            return { id: m.id, value: m.name };
-          })}
-          className="flex justify-center items-center"
-        />
-      ),
+      meta: { className: showFromMd },
+      header: () => <div className="text-center">市場</div>,
       cell: ({ row }) => {
         const market = row.getValue("market") as string;
         if (!market) return <div className="px-4">-</div>;
         return (
-          <Badge
-            variant="secondary"
-            className="bg-purple-50 text-purple-700 dark:bg-purple-950 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900 border-purple-200 dark:border-purple-800"
-          >
+          <Badge variant="secondary" className={marketBadgeClass}>
             {market}
           </Badge>
         );
@@ -84,25 +79,13 @@ export const columns = (
     },
     {
       accessorKey: "industry",
-      header: ({ column }) => (
-        <DataTableColumnHeaderFilterableMulti
-          column={column}
-          title="業種"
-          paramName="industry"
-          choices={industries.map((i) => {
-            return { id: i.id, value: i.name };
-          })}
-          className="flex justify-center items-center"
-        />
-      ),
+      meta: { className: showFromMd },
+      header: () => <div className="text-center">業種</div>,
       cell: ({ row }) => {
         const industry = row.getValue("industry") as string;
         if (!industry) return <div className="px-4">-</div>;
         return (
-          <Badge
-            variant="secondary"
-            className="bg-sky-50 text-sky-700 dark:bg-sky-950 dark:text-sky-300 hover:bg-sky-100 dark:hover:bg-sky-900 border-sky-200 dark:border-sky-800"
-          >
+          <Badge variant="secondary" className={industryBadgeClass}>
             {industry}
           </Badge>
         );
@@ -111,50 +94,35 @@ export const columns = (
     {
       accessorKey: "price",
       enableGlobalFilter: false,
+      meta: { className: showFromSm },
       header: () => <div className="text-center">現在値</div>,
       cell: ({ row }) => {
         const price = row.getValue("price") as number | undefined;
-        if (!price) return <div className="text-right px-4">-</div>;
+        if (!price) return <div className="text-center px-4">-</div>;
 
         const formatted = new Intl.NumberFormat("ja-JP", {
           style: "currency",
           currency: "JPY",
         }).format(price);
 
-        return <div className="text-right font-medium px-4">{formatted}</div>;
+        return <div className="text-center font-medium px-4">{formatted}</div>;
       },
     },
     {
       accessorKey: "dividendYield",
       enableGlobalFilter: false,
-      header: ({ column }) => (
-        <DataTableColumnHeaderFilterableUni
-          column={column}
-          title="配当利回り"
-          paramName="yield"
-          choices={dividendYieldRange}
-          className="flex justify-center items-center"
-        />
-      ),
+      header: () => <div className="text-center">配当利回り</div>,
       cell: ({ row }) => {
         const yieldVal = row.getValue("dividendYield") as number | undefined;
-        if (!yieldVal) return <div className="text-right px-4">-</div>;
-        return <div className="text-right font-medium px-4">{yieldVal}%</div>;
+        if (!yieldVal) return <div className="text-center px-4">-</div>;
+        return <div className="text-center font-medium px-4">{yieldVal}%</div>;
       },
     },
     {
       accessorKey: "score.total",
       id: "totalScore",
       enableGlobalFilter: false,
-      header: ({ column }) => (
-        <DataTableColumnHeaderFilterableUni
-          column={column}
-          title="スコア"
-          paramName="score"
-          choices={scoreRanges}
-          className="flex justify-center items-center"
-        />
-      ),
+      header: () => <div className="text-center">スコア</div>,
       cell: ({ row }) => {
         const score = row.getValue("totalScore") as string;
         if (!score) return <div className="text-center px-4">-</div>;
@@ -166,5 +134,4 @@ export const columns = (
       },
       accessorFn: (row) => row.totalScore,
     },
-  ];
-};
+];

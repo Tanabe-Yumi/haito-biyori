@@ -35,9 +35,11 @@ const PaginationControll = ({ total }: PaginationControllProps) => {
         variant="ghost"
         onClick={() => setPageQuery(0)}
         disabled={currentPage <= 0}
+        aria-label="最初のページへ"
       >
         <ChevronsLeftIcon />
-        最初へ
+        {/* 狭い幅ではアイコンのみ表示 */}
+        <span className="hidden sm:inline">最初へ</span>
       </Button>
       <Button
         variant="ghost"
@@ -63,8 +65,9 @@ const PaginationControll = ({ total }: PaginationControllProps) => {
         variant="ghost"
         onClick={() => setPageQuery(totalPages - 1)}
         disabled={currentPage >= totalPages - 1}
+        aria-label="最後のページへ"
       >
-        最後へ
+        <span className="hidden sm:inline">最後へ</span>
         <ChevronsRightIcon />
       </Button>
     </div>
