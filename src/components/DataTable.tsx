@@ -150,14 +150,17 @@ export function DataTable<TData, TValue>({
         </Table>
       </div>
 
-      <div className="flex items-center justify-between space-x-2">
+      {/* 狭い幅では表示範囲の下に折り返し、ページネーションを中央に配置する */}
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         {/* 表示範囲 */}
         <div className="text-muted-foreground text-sm">
           {`${from} 〜 ${to} / ${total} 件`}
         </div>
 
         {/* ページネーション */}
-        <PaginationControll total={total} />
+        <div className="self-center">
+          <PaginationControll total={total} />
+        </div>
       </div>
     </div>
   );

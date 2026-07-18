@@ -22,14 +22,12 @@ function StockNameLink({ stock }: { stock: StockWithTotalScore }) {
 
   return (
     <div>
+      {/* コードを銘柄名の上に小さく表示 (リンクの外) */}
+      <div className="text-xs font-medium text-muted-foreground">{code}</div>
       <Link
         href={query ? `/stocks/${code}?${query}` : `/stocks/${code}`}
         className="hover:underline font-extrabold hover:text-emerald-600 hover:font-bold decoration-emerald-500/50 underline-offset-4 decoration-2 block transition-all"
       >
-        {/* コードを銘柄名の上に小さく表示 */}
-        <span className="block text-xs font-medium text-muted-foreground">
-          {code}
-        </span>
         {name}
       </Link>
       {/* md 未満では市場・業種の列が消えるため、バッジで補完する
