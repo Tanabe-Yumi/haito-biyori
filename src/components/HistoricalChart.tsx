@@ -56,8 +56,15 @@ const BaseHistoricalChart = ({
 }: HistoricalChartProps & { leftUnit?: string; children: React.ReactNode }) => {
   // TODO: 各年度で最新のデータだけ表示する
   return (
-    <ChartContainer config={chartConfig} className="min-h-50 w-full">
-      <ComposedChart data={history} margin={{ top: 30 }}>
+    // 狭い幅ではチャート全体 (軸・目盛り込み) を横スクロールで表示する
+    // overflow-y-hidden: overflow-x を指定すると overflow-y も auto 扱いになり、
+    // わずかな高さの超過で縦スクロールが出てしまうのを防ぐ
+    <div className="overflow-x-auto overflow-y-hidden">
+      <ChartContainer
+        config={chartConfig}
+        className="aspect-auto h-72 w-full min-w-120 sm:h-96"
+      >
+        <ComposedChart data={history} margin={{ top: 30 }}>
         {/* グリッド線 */}
         <CartesianGrid vertical={false} />
         {/* x軸 */}
@@ -113,8 +120,9 @@ const BaseHistoricalChart = ({
 
         {/* 棒グラフ / 折れ線グラフ */}
         {children}
-      </ComposedChart>
-    </ChartContainer>
+        </ComposedChart>
+      </ChartContainer>
+    </div>
   );
 };
 
