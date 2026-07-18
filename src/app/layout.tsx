@@ -51,7 +51,9 @@ export default function RootLayout({
     <html lang="ja" suppressHydrationWarning>
       <body
         className={cn(
-          "min-h-screen bg-background antialiased flex flex-col",
+          // min-h-dvh: モバイルのアドレスバーを考慮した実表示領域の高さ
+          // (100vh だとアドレスバー分の差でスクロールが出る)
+          "min-h-dvh bg-background antialiased flex flex-col",
           geistSans.variable,
           geistMono.variable,
           mPlus1p.className,
