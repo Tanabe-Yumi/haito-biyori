@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { addPortfolioStocks, getPortfolioStocks } from "@/lib/api";
+import {
+  addPortfolioStocks,
+  clearPortfolioStocks,
+  getPortfolioStocks,
+} from "@/lib/api";
 
 // ポートフォリオの保有予定銘柄一覧を取得
 export async function GET() {
@@ -34,5 +38,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "invalid code" }, { status: 400 });
   }
 
+  return NextResponse.json({ ok: true });
+}
+
+// ポートフォリオの全銘柄を削除
+export async function DELETE() {
+  await clearPortfolioStocks();
   return NextResponse.json({ ok: true });
 }

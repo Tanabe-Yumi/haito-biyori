@@ -1,10 +1,21 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { DownloadIcon, Trash2Icon, WalletIcon } from "lucide-react";
 import { toast } from "sonner";
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,6 +32,10 @@ import {
 import { PortfolioStock } from "@/types/portfolio";
 import { FROM_PARAM_KEY, FROM_PORTFOLIO } from "@/constants/portfolio";
 import { downloadPortfolioCsv } from "@/lib/downloadCsv";
+import {
+  notifyPortfolioChanged,
+  usePortfolioSyncEffect,
+} from "@/hooks/use-portfolio-sync";
 import { annualDividend, purchaseAmount } from "@/lib/portfolio";
 
 // 円表示のフォーマッタ
@@ -33,15 +48,24 @@ export const PortfolioPage = () => {
   const [stocks, setStocks] = useState<PortfolioStock[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    fetch("/api/portfolio")
-      .then((res) => res.json())
-      .then((data) => {
-        setStocks(data);
-        setIsLoading(false);
-      })
-      .catch((e) => console.error("Error fetching portfolio:", e));
+  const refresh = useCallback(async () => {
+    try {
+      const res = await fetch("/api/portfolio");
+      setStocks(await res.json());
+    } catch (e) {
+      console.error("Error fetching portfolio:", e);
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
+
+  // 初回読み込み
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
+
+  // 他のタブでの変更に追従する
+  usePortfolioSyncEffect(refresh);
 
   // 株数を変更 (画面は即時更新し、保存は裏で行う)
   const updateShares = (code: string, shares: number) => {
@@ -52,15 +76,32 @@ export const PortfolioPage = () => {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ shares }),
-    }).catch((e) => console.error("Error updating shares:", e));
+    })
+      .then(() => notifyPortfolioChanged())
+      .catch((e) => console.error("Error updating shares:", e));
   };
 
   // 銘柄を削除
   const removeStock = (code: string) => {
     setStocks((prev) => prev.filter((s) => s.code !== code));
-    fetch(`/api/portfolio/${code}`, { method: "DELETE" }).catch((e) =>
-      console.error("Error removing stock:", e),
-    );
+    fetch(`/api/portfolio/${code}`, { method: "DELETE" })
+      .then(() => notifyPortfolioChanged())
+      .catch((e) => console.error("Error removing stock:", e));
+  };
+
+  // 全銘柄を削除
+  const removeAllStocks = async () => {
+    try {
+      await fetch("/api/portfolio", { method: "DELETE" });
+      setStocks([]);
+      notifyPortfolioChanged();
+      toast.success("ポートフォリオの銘柄をすべて削除しました", {
+        position: "bottom-right",
+      });
+    } catch (e) {
+      console.error("Error clearing portfolio:", e);
+      toast.error("削除に失敗しました", { position: "bottom-right" });
+    }
   };
 
   // サマリー
@@ -266,15 +307,51 @@ export const PortfolioPage = () => {
         </Table>
       </div>
 
-      {/* CSVダウンロード */}
-      <Button
-        variant="secondary"
-        onClick={handleDownloadCsv}
-        disabled={stocks.length === 0}
-      >
-        <DownloadIcon />
-        CSVダウンロード
-      </Button>
+      <div className="flex items-center justify-between">
+        {/* CSVダウンロード */}
+        <Button
+          variant="secondary"
+          onClick={handleDownloadCsv}
+          disabled={stocks.length === 0}
+        >
+          <DownloadIcon />
+          CSVダウンロード
+        </Button>
+
+        {/* 全銘柄削除 (確認ダイアログ付き) */}
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button
+              variant="outline"
+              disabled={stocks.length === 0}
+              className="text-rose-600 hover:text-rose-600 border-rose-200 hover:bg-rose-50 dark:border-rose-900 dark:hover:bg-rose-950"
+            >
+              <Trash2Icon />
+              すべて削除
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>
+                ポートフォリオの銘柄をすべて削除しますか？
+              </AlertDialogTitle>
+              <AlertDialogDescription>
+                {stocks.length}
+                銘柄と設定した株数がすべて削除されます。この操作は取り消せません。
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>キャンセル</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={removeAllStocks}
+                className="bg-rose-600 hover:bg-rose-700"
+              >
+                すべて削除
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </div>
     </div>
   );
 };

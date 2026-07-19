@@ -356,3 +356,8 @@ export async function updatePortfolioShares(
 export async function removePortfolioStock(code: string): Promise<void> {
   await db.deleteFrom("portfolio_items").where("code", "=", code).execute();
 }
+
+// ポートフォリオの全銘柄を削除
+export async function clearPortfolioStocks(): Promise<void> {
+  await db.deleteFrom("portfolio_items").execute();
+}

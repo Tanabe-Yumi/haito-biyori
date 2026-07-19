@@ -1,17 +1,21 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { CheckIcon, PlusIcon } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import {
+  notifyPortfolioChanged,
+  usePortfolioSyncEffect,
+} from "@/hooks/use-portfolio-sync";
 
 // 詳細ページ用のポートフォリオ追加/削除ボタン
 export function PortfolioDetailButton({ code }: { code: string }) {
   // null = 読み込み中
   const [isAdded, setIsAdded] = useState<boolean | null>(null);
 
-  useEffect(() => {
+  const refresh = useCallback(() => {
     fetch("/api/portfolio")
       .then((res) => res.json())
       .then((stocks: { code: string }[]) =>
@@ -19,6 +23,13 @@ export function PortfolioDetailButton({ code }: { code: string }) {
       )
       .catch((e) => console.error("Error fetching portfolio:", e));
   }, [code]);
+
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
+
+  // 他のタブでの変更に追従する
+  usePortfolioSyncEffect(refresh);
 
   const toggle = async () => {
     if (isAdded == null) {
@@ -39,6 +50,7 @@ export function PortfolioDetailButton({ code }: { code: string }) {
       } else {
         await fetch(`/api/portfolio/${code}`, { method: "DELETE" });
       }
+      notifyPortfolioChanged();
     } catch (e) {
       console.error("Error toggling portfolio:", e);
       setIsAdded(!next);

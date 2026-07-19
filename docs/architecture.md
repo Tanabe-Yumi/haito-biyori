@@ -173,6 +173,7 @@ npm run db:codegen   # 実DBから src/types/db.ts を再生成
 | `POST /api/portfolio` | ポートフォリオに銘柄を追加 (body: `{ code }` または一括の `{ codes: [...] }`) |
 | `PATCH /api/portfolio/[code]` | 株数を更新 (body: `{ shares }`) |
 | `DELETE /api/portfolio/[code]` | ポートフォリオから銘柄を削除 |
+| `DELETE /api/portfolio` | ポートフォリオの全銘柄を削除 |
 | `GET /api/exec/fetch-stocks` | 株価取得バッチの実行 (admin用・ストリーミング) |
 | `GET /api/exec/calc-scores` | スコア計算バッチの実行 (admin用・ストリーミング) |
 

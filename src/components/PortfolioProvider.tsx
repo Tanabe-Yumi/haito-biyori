@@ -8,6 +8,11 @@ import {
   useState,
 } from "react";
 
+import {
+  notifyPortfolioChanged,
+  usePortfolioSyncEffect,
+} from "@/hooks/use-portfolio-sync";
+
 // ポートフォリオへの登録状態を一覧ページで共有するコンテキスト
 // (行ごとの追加ボタンが個別にfetchしなくて済むよう、登録済みコードを一括保持する)
 interface PortfolioContextValue {
@@ -29,7 +34,7 @@ export function PortfolioProvider({ children }: { children: React.ReactNode }) {
   const [codes, setCodes] = useState<Set<string>>(new Set());
 
   // 登録済みコードを取得
-  useEffect(() => {
+  const refresh = useCallback(() => {
     fetch("/api/portfolio")
       .then((res) => res.json())
       .then((stocks: { code: string }[]) =>
@@ -37,6 +42,13 @@ export function PortfolioProvider({ children }: { children: React.ReactNode }) {
       )
       .catch((e) => console.error("Error fetching portfolio:", e));
   }, []);
+
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
+
+  // 他のタブでの変更に追従する
+  usePortfolioSyncEffect(refresh);
 
   const toggle = useCallback(
     async (code: string) => {
@@ -63,6 +75,7 @@ export function PortfolioProvider({ children }: { children: React.ReactNode }) {
             body: JSON.stringify({ code }),
           });
         }
+        notifyPortfolioChanged();
       } catch (e) {
         console.error("Error toggling portfolio:", e);
         // 失敗したら元に戻す
@@ -96,6 +109,7 @@ export function PortfolioProvider({ children }: { children: React.ReactNode }) {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ codes: toAdd }),
         });
+        notifyPortfolioChanged();
       } catch (e) {
         console.error("Error adding portfolio stocks:", e);
         // 失敗したら元に戻す
