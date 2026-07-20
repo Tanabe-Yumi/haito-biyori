@@ -13,6 +13,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
 
 // TODO: 処理実行中もモーダル閉じて別操作できるように改善
@@ -27,15 +28,24 @@ export interface AdminExecButtonProps {
   action: "fetch-stocks" | "calc-scores";
   title: string;
   icon: keyof typeof icons;
+  // 「未更新の銘柄のみ」オプションを表示するか (株価更新用)
+  withResumeOption?: boolean;
 }
 
-const AdminExecButton = ({ action, title, icon }: AdminExecButtonProps) => {
+const AdminExecButton = ({
+  action,
+  title,
+  icon,
+  withResumeOption = false,
+}: AdminExecButtonProps) => {
   const endpoint = "/api/exec/" + action;
   const Icon = icons[icon];
   const [progress, setProgress] = useState(0);
   const [logs, setLogs] = useState<string[]>([]);
   const [statusMessage, setStatusMessage] = useState("準備中...");
   const [isExecuting, setIsExecuting] = useState(false);
+  // 未更新の銘柄のみを対象にするか
+  const [resumeOnly, setResumeOnly] = useState(false);
 
   const resetStates = () => {
     setProgress(0);
@@ -47,8 +57,16 @@ const AdminExecButton = ({ action, title, icon }: AdminExecButtonProps) => {
     resetStates();
     setIsExecuting(true);
 
+    // 「未更新の銘柄のみ」の場合、今日 (UTC) より前に更新された銘柄だけを対象にする
+    // (updated_at は UTC で保存されているため、日付も UTC 基準で渡す)
+    const today = new Date().toISOString().slice(0, 10);
+    const url =
+      withResumeOption && resumeOnly
+        ? `${endpoint}?updatedBefore=${today}`
+        : endpoint;
+
     const decoder = new TextDecoder();
-    const res = await fetch(endpoint);
+    const res = await fetch(url);
     // サーバーのデータをリアルタイムかつ継続的に受け取り
     const reader = res.body?.getReader();
     if (!reader) return;
@@ -111,6 +129,17 @@ const AdminExecButton = ({ action, title, icon }: AdminExecButtonProps) => {
   };
 
   return (
+    <div className="flex flex-col items-start sm:items-end gap-2">
+      {/* 未更新の銘柄だけを対象にするオプション (実行前に選ぶ) */}
+      {withResumeOption && (
+        <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer">
+          <Checkbox
+            checked={resumeOnly}
+            onCheckedChange={(checked) => setResumeOnly(checked === true)}
+          />
+          未更新の銘柄のみ (今日更新済みの銘柄をスキップ)
+        </label>
+      )}
     <AlertDialog>
       <AlertDialogTrigger asChild>
         <Button
@@ -155,6 +184,7 @@ const AdminExecButton = ({ action, title, icon }: AdminExecButtonProps) => {
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
+    </div>
   );
 };
 

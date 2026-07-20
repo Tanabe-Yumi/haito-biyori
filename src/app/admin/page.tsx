@@ -18,6 +18,7 @@ type Action = {
   description: string | null;
   notice: string | null;
   icon: AdminExecButtonProps["icon"];
+  withResumeOption?: boolean;
 };
 
 const AdminPage = () => {
@@ -30,6 +31,8 @@ const AdminPage = () => {
         "yfinanceから現在の株価を取得し、データベースの stocks テーブルを最新化",
       notice: "実行には数時間かかる場合があります",
       icon: "refresh",
+      // 中断からの再開用オプションを表示する
+      withResumeOption: true,
     },
     {
       id: "calc-scores",
@@ -77,6 +80,7 @@ const AdminPage = () => {
                   action={action.id}
                   title={action.label}
                   icon={action.icon}
+                  withResumeOption={action.withResumeOption}
                 />
               </div>
             </CardContent>

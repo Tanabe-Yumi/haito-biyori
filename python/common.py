@@ -131,10 +131,22 @@ def connect_db():
 
 
 @log_call
-def fetch_stocks_from_db(conn):
-    """SQLite から銘柄リストを取得"""
+def fetch_stocks_from_db(conn, updated_before=None):
+    """SQLite から銘柄リストを取得
+
+    updated_before: "YYYY-MM-DD" を指定すると、その日より前に更新された銘柄だけを返す
+                    (中断した更新処理を残りの銘柄だけで再開する用)
+    """
     try:
-        rows = conn.execute("select code, name from stocks order by code").fetchall()
+        if updated_before:
+            rows = conn.execute(
+                "select code, name from stocks where date(updated_at) < ? order by code",
+                (updated_before,),
+            ).fetchall()
+        else:
+            rows = conn.execute(
+                "select code, name from stocks order by code"
+            ).fetchall()
         return [dict(row) for row in rows]
     except Exception as e:
         logger.warning(f"銘柄リスト取得エラー: {e}")
