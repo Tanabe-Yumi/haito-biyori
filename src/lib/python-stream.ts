@@ -89,6 +89,26 @@ export function createPythonStreamHandler(scriptName: string) {
   return { createStream, cancel };
 }
 
+// resolveUpdatedBeforeArgs
+// 「未更新の銘柄のみ」オプションを Python の --updated-before 引数に変換する
+// - resume=1        : サーバー側で「今日」に解決する (管理者ページから使う)
+// - updatedBefore=X : 日付を明示指定する (API を直接叩く場合)
+export function resolveUpdatedBeforeArgs(
+  searchParams: URLSearchParams,
+): string[] {
+  if (searchParams.get("resume") === "1") {
+    return ["--updated-before", new Date().toISOString().slice(0, 10)];
+  }
+
+  const updatedBefore = searchParams.get("updatedBefore");
+  // 日付形式のみ許可 (スクリプトへ渡す引数のバリデーション)
+  if (updatedBefore && /^\d{4}-\d{2}-\d{2}$/.test(updatedBefore)) {
+    return ["--updated-before", updatedBefore];
+  }
+
+  return [];
+}
+
 // sseResponse: SSE 用のレスポンスヘッダを付けて NextResponse を返す
 // - ReadableStream により継続的なレスポンスを得ることができる
 export function sseResponse(stream: ReadableStream) {
