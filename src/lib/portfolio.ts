@@ -1,4 +1,4 @@
-import { PortfolioStock } from "@/types/portfolio";
+import { PortfolioSort, PortfolioStock } from "@/types/portfolio";
 
 // 銘柄ごとの購入金額 (現在値 × 株数)
 // 株価が未取得 (null) の場合は null を返し、集計から除外できるようにする
@@ -47,6 +47,57 @@ export function summarizePortfolio(stocks: PortfolioStock[]): PortfolioSummary {
     portfolioYield:
       totalAmount !== 0 ? (totalDividend / totalAmount) * 100 : null,
   };
+}
+
+// 指定した並び順で銘柄を並べ替える (元の配列は変更しない)
+// 値が未取得 (null) の銘柄は昇順・降順によらず末尾に置く
+export function sortPortfolioStocks(
+  stocks: PortfolioStock[],
+  sort: PortfolioSort | null,
+): PortfolioStock[] {
+  if (sort === null) {
+    return stocks;
+  }
+
+  // 列ごとの比較用の値
+  const valueOf = (stock: PortfolioStock): string | number | null => {
+    switch (sort.key) {
+      case "name":
+        return stock.code;
+      case "industry":
+        return stock.industry;
+      case "price":
+        return stock.price;
+      case "dividendYield":
+        return stock.dividendYield;
+      case "totalScore":
+        return stock.totalScore;
+      case "shares":
+        return stock.shares;
+      // 購入金額と構成比は比例するため、同じ値で並べ替えられる
+      case "amount":
+        return purchaseAmount(stock);
+      case "dividend":
+        return annualDividend(stock);
+    }
+  };
+
+  const direction = sort.order === "asc" ? 1 : -1;
+
+  return [...stocks].sort((a, b) => {
+    const va = valueOf(a);
+    const vb = valueOf(b);
+
+    // null は常に末尾
+    if (va == null && vb == null) return 0;
+    if (va == null) return 1;
+    if (vb == null) return -1;
+
+    if (typeof va === "string" && typeof vb === "string") {
+      return va.localeCompare(vb, "ja") * direction;
+    }
+    return ((va as number) - (vb as number)) * direction;
+  });
 }
 
 // 業種ごとの内訳

@@ -1,3 +1,21 @@
+// ポートフォリオ一覧のソート対象の列
+export type PortfolioSortKey =
+  | "name"
+  | "industry"
+  | "price"
+  | "dividendYield"
+  | "totalScore"
+  | "shares"
+  | "amount"
+  | "dividend";
+
+export type SortOrder = "asc" | "desc";
+
+export interface PortfolioSort {
+  key: PortfolioSortKey;
+  order: SortOrder;
+}
+
 // ポートフォリオの保有予定銘柄 (銘柄情報と結合済み)
 export interface PortfolioStock {
   code: string;

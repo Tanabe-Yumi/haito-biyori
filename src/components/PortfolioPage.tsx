@@ -39,8 +39,11 @@ import {
 import {
   annualDividend,
   purchaseAmount,
+  sortPortfolioStocks,
   summarizePortfolio,
 } from "@/lib/portfolio";
+import { PortfolioSortableHeader } from "@/components/PortfolioSortableHeader";
+import { PortfolioSort, PortfolioSortKey } from "@/types/portfolio";
 
 // 円表示のフォーマッタ
 const yen = new Intl.NumberFormat("ja-JP", {
@@ -107,6 +110,23 @@ export const PortfolioPage = () => {
       toast.error("削除に失敗しました", { position: "bottom-right" });
     }
   };
+
+  // 並び順 (null = 追加順)
+  const [sort, setSort] = useState<PortfolioSort | null>(null);
+
+  // ヘッダーをクリックしたときの並び順の切り替え
+  // 同じ列: 降順 → 昇順 → 解除(追加順)、別の列: その列の降順
+  const toggleSort = (key: PortfolioSortKey) => {
+    setSort((prev) => {
+      if (prev?.key !== key) {
+        return { key, order: "desc" };
+      }
+      return prev.order === "desc" ? { key, order: "asc" } : null;
+    });
+  };
+
+  // 表示用に並べ替えた銘柄 (集計は並び順に依存しないため元の配列を使う)
+  const sortedStocks = sortPortfolioStocks(stocks, sort);
 
   // サマリー (CSV出力と同じ集計を共有する)
   const {
@@ -179,14 +199,70 @@ export const PortfolioPage = () => {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>銘柄</TableHead>
-              <TableHead className="text-center">業種</TableHead>
-              <TableHead className="text-center">現在値</TableHead>
-              <TableHead className="text-center">利回り</TableHead>
-              <TableHead className="text-center">スコア</TableHead>
-              <TableHead className="text-center">株数</TableHead>
-              <TableHead className="text-center">購入金額</TableHead>
-              <TableHead className="text-center">年間配当</TableHead>
+              <PortfolioSortableHeader
+                sortKey="name"
+                sort={sort}
+                onSort={toggleSort}
+              >
+                銘柄
+              </PortfolioSortableHeader>
+              <PortfolioSortableHeader
+                sortKey="industry"
+                sort={sort}
+                onSort={toggleSort}
+                className="text-center"
+              >
+                業種
+              </PortfolioSortableHeader>
+              <PortfolioSortableHeader
+                sortKey="price"
+                sort={sort}
+                onSort={toggleSort}
+                className="text-center"
+              >
+                現在値
+              </PortfolioSortableHeader>
+              <PortfolioSortableHeader
+                sortKey="dividendYield"
+                sort={sort}
+                onSort={toggleSort}
+                className="text-center"
+              >
+                利回り
+              </PortfolioSortableHeader>
+              <PortfolioSortableHeader
+                sortKey="totalScore"
+                sort={sort}
+                onSort={toggleSort}
+                className="text-center"
+              >
+                スコア
+              </PortfolioSortableHeader>
+              <PortfolioSortableHeader
+                sortKey="shares"
+                sort={sort}
+                onSort={toggleSort}
+                className="text-center"
+              >
+                株数
+              </PortfolioSortableHeader>
+              <PortfolioSortableHeader
+                sortKey="amount"
+                sort={sort}
+                onSort={toggleSort}
+                className="text-center"
+              >
+                購入金額
+              </PortfolioSortableHeader>
+              <PortfolioSortableHeader
+                sortKey="dividend"
+                sort={sort}
+                onSort={toggleSort}
+                className="text-center"
+              >
+                年間配当
+              </PortfolioSortableHeader>
+              {/* 構成比は購入金額に比例するため、購入金額のソートで並び替えられる */}
               <TableHead className="text-center">構成比</TableHead>
               <TableHead />
             </TableRow>
@@ -212,7 +288,7 @@ export const PortfolioPage = () => {
                 </TableCell>
               </TableRow>
             ) : (
-              stocks.map((stock) => {
+              sortedStocks.map((stock) => {
                 const amount = purchaseAmount(stock);
                 const dividend = annualDividend(stock);
                 const ratio =
