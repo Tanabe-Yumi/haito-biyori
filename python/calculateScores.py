@@ -1,3 +1,4 @@
+import argparse
 import logging
 import sys
 
@@ -10,6 +11,7 @@ import common
 from common import (
     connect_db,
     fetch_stocks_from_db,
+    fetch_stocks_with_stale_scores,
     make_log_decorator,
     send_frontend_log,
     send_frontend_progress,
@@ -101,7 +103,8 @@ def calculate_cagr(series):
     end = clean.iloc[-1]
     n = len(clean) - 1
 
-    if start <= 0:
+    # 端点が正でないと CAGR は定義できない (負数の分数乗は NaN になる)
+    if start <= 0 or end <= 0:
         return None
 
     return (end / start) ** (1 / n) - 1
@@ -323,9 +326,13 @@ def calculate_stock_score(df):
 
 
 @log_call
-def calculateScores(conn):
+def calculateScores(conn, updated_before=None):
     #  銘柄リストを取得
-    stocks = fetch_stocks_from_db(conn)
+    # updated_before 指定時は、スコアが未計算または古い銘柄だけを対象にする
+    if updated_before:
+        stocks = fetch_stocks_with_stale_scores(conn, updated_before)
+    else:
+        stocks = fetch_stocks_from_db(conn)
     if not stocks:
         send_frontend_status("更新する銘柄がありません")
         logger.warning("更新する銘柄が0件. 処理を終了")
@@ -424,12 +431,18 @@ def calculateScores(conn):
 ###################
 
 if __name__ == "__main__":
+    # --updated-before YYYY-MM-DD:
+    # スコアが未計算、またはその日より前に計算された銘柄だけを対象にする (中断した計算の再開用)
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--updated-before", default=None)
+    args = parser.parse_args()
+
     # SQLite 接続
     conn = connect_db()
     if conn is None:
         sys.exit(1)
 
     # スコア計算
-    calculateScores(conn)
+    calculateScores(conn, updated_before=args.updated_before)
     conn.close()
     sys.exit()

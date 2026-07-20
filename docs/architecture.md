@@ -193,6 +193,11 @@ python/venv/bin/python python/fetchStockPrices.py   # yfinance で株価・配�
 python/venv/bin/python python/calculateScores.py    # financial_history からスコアを算出し scores を upsert
 ```
 
+- `fetchStockPrices.py --updated-before YYYY-MM-DD`: その日より前に更新された銘柄だけを対象にする。
+  途中で中断 (PCスリープ等) した更新を残りの銘柄だけで再開できる。
+  admin ページの「未更新の銘柄のみ」チェックボックスからも同じ機能を使える (`?updatedBefore=` → `--updated-before`)
+- 長時間の実行はスリープ抑止付きで行うとよい: `caffeinate -i python/venv/bin/python python/fetchStockPrices.py`
+
 - DB パスは `SQLITE_DB_PATH` または `<リポジトリ>/data/haito-biyori.db` (スクリプトの位置から解決)
 - ログは `python/logs/` に出力
 - **admin ページ (`/admin`) からも実行可能**。[python-stream.ts](../src/lib/python-stream.ts) が venv の Python を spawn し、進捗を JSON でストリーミングする

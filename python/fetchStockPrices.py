@@ -1,3 +1,4 @@
+import argparse
 import logging
 import sys
 import time
@@ -61,9 +62,9 @@ def update_stock_price(
 
 
 @log_call
-def fetchStockPrices(conn):
+def fetchStockPrices(conn, updated_before=None):
     # 銘柄リストを取得
-    stocks = fetch_stocks_from_db(conn)
+    stocks = fetch_stocks_from_db(conn, updated_before)
     if not stocks:
         send_frontend_status("更新する銘柄がありません")
         logger.warning("更新する銘柄が0件. 処理を終了")
@@ -141,11 +142,17 @@ def fetchStockPrices(conn):
 ###################
 
 if __name__ == "__main__":
+    # --updated-before YYYY-MM-DD:
+    # その日より前に更新された銘柄だけを対象にする (中断した更新の再開用)
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--updated-before", default=None)
+    args = parser.parse_args()
+
     # SQLite 接続
     conn = connect_db()
     if conn is None:
         sys.exit(1)
     # 株価取得
-    fetchStockPrices(conn)
+    fetchStockPrices(conn, updated_before=args.updated_before)
     conn.close()
     sys.exit()

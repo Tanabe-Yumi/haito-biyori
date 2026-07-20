@@ -23,7 +23,8 @@ export function createPythonStreamHandler(scriptName: string) {
   // - フロントのキャンセルボタンから停止するため createStream 関数外で定義
   let childProcess: ChildProcessWithoutNullStreams | null = null;
 
-  function createStream() {
+  // extraArgs: スクリプトに渡す追加のコマンドライン引数
+  function createStream(extraArgs: string[] = []) {
     const encoder = new TextEncoder();
 
     // ReadableStream
@@ -40,7 +41,7 @@ export function createPythonStreamHandler(scriptName: string) {
 
         // spawn: イベント駆動型の子プロセス起動
         // - 非同期でチャンクを1つずつ受け取るため、大量データの処理に適している
-        childProcess = spawn(pythonPath, [scriptPath], {
+        childProcess = spawn(pythonPath, [scriptPath, ...extraArgs], {
           // Python 側で出力を溜め込まずリアルタイムに出力
           env: { ...process.env, PYTHONUNBUFFERED: "1" },
         });
