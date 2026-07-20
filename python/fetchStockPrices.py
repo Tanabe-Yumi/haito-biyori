@@ -30,8 +30,36 @@ logger = logging.getLogger(__name__)
 log_call = make_log_decorator(logger)
 
 ###################
+# 定数
+###################
+
+# 市場ID → yfinance のティッカーサフィックス
+# 銘柄コードだけでは市場を判別できないため、market の値で切り替える
+# (1〜3: 東証, 4〜6: 名証, 7: 札証, 8〜10: 福証)
+MARKET_SUFFIXES = {
+    1: ".T",  # 東証プライム
+    2: ".T",  # 東証スタンダード
+    3: ".T",  # 東証グロース
+    4: ".N",  # 名証プレミア
+    5: ".N",  # 名証メイン
+    6: ".N",  # 名証ネクスト
+    7: ".S",  # 札証
+    8: ".F",  # 福証本則
+    9: ".F",  # 福証Q-Board
+    10: ".F",  # 福証Fukuoka PRO Market
+}
+
+# 市場が未設定・不明な場合のサフィックス
+DEFAULT_SUFFIX = ".T"
+
+###################
 # functions
 ###################
+
+
+def build_ticker(code: str, market) -> str:
+    """銘柄コードと市場から yfinance のティッカーシンボルを組み立てる"""
+    return f"{code}{MARKET_SUFFIXES.get(market, DEFAULT_SUFFIX)}"
 
 
 def update_stock_price(
@@ -82,13 +110,15 @@ def fetchStockPrices(conn, updated_before=None):
 
         code = stock["code"]
         name = stock["name"]
+        # 上場市場に応じたティッカー (東証 .T / 名証 .N / 札証 .S / 福証 .F)
+        symbol = build_ticker(code, stock.get("market"))
 
         # 処理中の情報
         send_frontend_progress(idx, total, code, name)
 
         try:
             # 銘柄情報を取得
-            ticker = yf.Ticker(f"{code}.T")
+            ticker = yf.Ticker(symbol)
             info = ticker.info
 
             # 株価
@@ -105,8 +135,8 @@ def fetchStockPrices(conn, updated_before=None):
 
             # 株価と配当利回りの両方が取得できない場合はDB更新せず終了
             if price is None and dividend_yield is None:
-                send_frontend_log(f"✗ 失敗: {name} (取得失敗)")
-                logger.warning(f"yfinance取得失敗: {code} {name}")
+                send_frontend_log(f"✗ 失敗: {name} (取得失敗: {symbol})")
+                logger.warning(f"yfinance取得失敗: {code} {name} ({symbol})")
                 fail_count += 1
                 continue
 
@@ -122,7 +152,7 @@ def fetchStockPrices(conn, updated_before=None):
 
         except Exception as e:
             send_frontend_log(f"✗ 失敗: {name} ({e})")
-            logger.error(f"取得/更新失敗: {code} {name} ({e})")
+            logger.error(f"取得/更新失敗: {code} {name} ({symbol}) ({e})")
             fail_count += 1
 
         # API制限対策

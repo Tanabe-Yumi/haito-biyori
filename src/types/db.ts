@@ -5,9 +5,10 @@
 
 import type { ColumnType } from "kysely";
 
-export type Generated<T> = T extends ColumnType<infer S, infer I, infer U>
-  ? ColumnType<S, I | undefined, U>
-  : ColumnType<T, T | undefined, T>;
+export type Generated<T> =
+  T extends ColumnType<infer S, infer I, infer U>
+    ? ColumnType<S, I | undefined, U>
+    : ColumnType<T, T | undefined, T>;
 
 export interface FinancialHistory {
   cash: number | null;
@@ -61,6 +62,7 @@ export interface Stocks {
   created_at: Generated<string>;
   dividend_yield: number | null;
   industry: number | null;
+  is_excluded: Generated<number>;
   market: number | null;
   name: string;
   price: number | null;

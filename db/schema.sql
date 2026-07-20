@@ -74,6 +74,8 @@ create table if not exists stocks (
   industry       integer references industries(id),
   price          real,
   dividend_yield real,
+  -- 対象外フラグ (上場廃止など。一覧表示・株価取得・スコア計算の対象から外す)
+  is_excluded    integer not null default 0,
   updated_at     text    not null default (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
   created_at     text    not null default (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
 );
@@ -132,8 +134,10 @@ create table if not exists portfolio_items (
 );
 
 -- timestamp 自動更新トリガー
+-- updated_at は「株価データの更新日時」なので、価格・配当利回りの更新時のみ発火する
+-- (is_excluded などの管理用カラムの変更では更新しない)
 create trigger if not exists handle_updated_at
-  after update on stocks
+  after update of price, dividend_yield on stocks
   for each row
 begin
   update stocks
@@ -167,7 +171,9 @@ select
 from stocks
 left join markets    on stocks.market   = markets.id
 left join industries on stocks.industry = industries.id
-inner join scores    on stocks.code     = scores.code;
+inner join scores    on stocks.code     = scores.code
+-- 対象外の銘柄は表示しない
+where stocks.is_excluded = 0;
 
 -- stocks_with_scores view
 create view if not exists stocks_with_scores as
@@ -193,4 +199,6 @@ select
 from stocks
 left join markets    on stocks.market   = markets.id
 left join industries on stocks.industry = industries.id
-inner join scores    on stocks.code     = scores.code;
+inner join scores    on stocks.code     = scores.code
+-- 対象外の銘柄は表示しない
+where stocks.is_excluded = 0;

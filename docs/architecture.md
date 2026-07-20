@@ -87,17 +87,19 @@ flowchart LR
 
 ### テーブルとビュー
 
-| 種類 | 名前 | 内容 |
-|---|---|---|
-| テーブル | `markets` / `industries` | 市場・業種マスタ (スキーマ内でシード投入) |
-| テーブル | `stocks` | 銘柄 (コード・名前・株価・配当利回り) |
-| テーブル | `financial_history` | 決算データ (銘柄×年×月でユニーク) |
-| テーブル | `scores` | スコア (8項目 + 合計。銘柄ごとに1行) |
-| テーブル | `portfolio_items` | ポートフォリオの保有予定銘柄 (コード + 株数) |
-| ビュー | `stocks_with_total_score` | 一覧用 (stocks + マスタ + 合計スコア) |
-| ビュー | `stocks_with_scores` | 詳細・CSV用 (stocks + マスタ + 全スコア) |
+| 種類     | 名前                      | 内容                                                                                               |
+| -------- | ------------------------- | -------------------------------------------------------------------------------------------------- |
+| テーブル | `markets` / `industries`  | 市場・業種マスタ (スキーマ内でシード投入)                                                          |
+| テーブル | `stocks`                  | 銘柄 (コード・名前・株価・配当利回り)。`is_excluded = 1` で対象外 (上場廃止など。削除はしない方針) |
+| テーブル | `financial_history`       | 決算データ (銘柄×年×月でユニーク)                                                                  |
+| テーブル | `scores`                  | スコア (8項目 + 合計。銘柄ごとに1行)                                                               |
+| テーブル | `portfolio_items`         | ポートフォリオの保有予定銘柄 (コード + 株数)                                                       |
+| ビュー   | `stocks_with_total_score` | 一覧用 (stocks + マスタ + 合計スコア)                                                              |
+| ビュー   | `stocks_with_scores`      | 詳細・CSV用 (stocks + マスタ + 全スコア)                                                           |
 
 - ビューは `inner join scores` のため、**scores 行がない銘柄は表示されない** (仕様)
+- ビューは `is_excluded = 0` で絞るため、**対象外フラグの銘柄も表示されない**。Python の銘柄取得 (`fetch_stocks_from_db` など) も同様に除外する
+- stocks の `updated_at` 自動更新トリガーは **price / dividend_yield の更新時のみ発火** (is_excluded などの管理用カラムの変更では株価更新日時を変えない)
 - `updated_at` はトリガーで自動更新
 
 ### 型定義の自動生成 (kysely-codegen)
@@ -123,15 +125,15 @@ npm run db:codegen   # 実DBから src/types/db.ts を再生成
 一覧ページの状態 (検索・フィルタ・ページネーション) は**すべて URL クエリパラメータに保存**する。
 中央スキーマは [src/lib/stockListParams.ts](../src/lib/stockListParams.ts)。
 
-| 論理名 | URLキー | 型 | デフォルト |
-|---|---|---|---|
-| search | `q` | string | "" |
-| market | `m` | number[] (カンマ区切り) | [] |
-| industry | `i` | number[] (カンマ区切り) | [] |
-| yield | `y` | number | **3.5** (%以上で絞り込み) |
-| score | `s` | number | 0 (=全て) |
-| page | `p` | number | 1 |
-| rows | `r` | number | 10 |
+| 論理名   | URLキー | 型                      | デフォルト                |
+| -------- | ------- | ----------------------- | ------------------------- |
+| search   | `q`     | string                  | ""                        |
+| market   | `m`     | number[] (カンマ区切り) | []                        |
+| industry | `i`     | number[] (カンマ区切り) | []                        |
+| yield    | `y`     | number                  | **3.5** (%以上で絞り込み) |
+| score    | `s`     | number                  | 0 (=全て)                 |
+| page     | `p`     | number                  | 1                         |
+| rows     | `r`     | number                  | 10                        |
 
 設計のポイント:
 
@@ -164,18 +166,19 @@ npm run db:codegen   # 実DBから src/types/db.ts を再生成
 
 ## API エンドポイント
 
-| エンドポイント | 用途 |
-|---|---|
-| `GET /api/stocks` | 一覧 (フィルタ・ページネーション対応) |
-| `GET /api/stocks/export` | CSV エクスポート用の全件取得 (1000件ずつ内部ページング) |
-| `GET /api/markets` / `GET /api/industries` | マスタ取得 |
-| `GET /api/portfolio` | ポートフォリオ一覧 (銘柄情報と結合済み) |
-| `POST /api/portfolio` | ポートフォリオに銘柄を追加 (body: `{ code }` または一括の `{ codes: [...] }`) |
-| `PATCH /api/portfolio/[code]` | 株数を更新 (body: `{ shares }`) |
-| `DELETE /api/portfolio/[code]` | ポートフォリオから銘柄を削除 |
-| `DELETE /api/portfolio` | ポートフォリオの全銘柄を削除 |
-| `GET /api/exec/fetch-stocks` | 株価取得バッチの実行 (admin用・ストリーミング) |
-| `GET /api/exec/calc-scores` | スコア計算バッチの実行 (admin用・ストリーミング) |
+| エンドポイント                             | 用途                                                                          |
+| ------------------------------------------ | ----------------------------------------------------------------------------- |
+| `GET /api/stocks`                          | 一覧 (フィルタ・ページネーション対応)                                         |
+| `GET /api/stocks/export`                   | CSV エクスポート用の全件取得 (1000件ずつ内部ページング)                       |
+| `GET /api/markets` / `GET /api/industries` | マスタ取得                                                                    |
+| `GET /api/portfolio`                       | ポートフォリオ一覧 (銘柄情報と結合済み)                                       |
+| `POST /api/portfolio`                      | ポートフォリオに銘柄を追加 (body: `{ code }` または一括の `{ codes: [...] }`) |
+| `PATCH /api/portfolio/[code]`              | 株数を更新 (body: `{ shares }`)                                               |
+| `DELETE /api/portfolio/[code]`             | ポートフォリオから銘柄を削除                                                  |
+| `DELETE /api/portfolio`                    | ポートフォリオの全銘柄を削除                                                  |
+| `GET /api/exec/sync-stocks`                | 銘柄リスト同期バッチの実行 (admin用・ストリーミング)                          |
+| `GET /api/exec/fetch-stocks`               | 株価取得バッチの実行 (admin用・ストリーミング)                                |
+| `GET /api/exec/calc-scores`                | スコア計算バッチの実行 (admin用・ストリーミング)                              |
 
 クエリパラメータは一覧ページと同じ短縮キー (`q` `m` `i` `y` `s` `p` `r`)。
 
@@ -196,13 +199,30 @@ npx tsx scripts/update_operating_profit.ts   # data/operating_profit.csv → 営
 リポジトリルートから実行する (ログパスがルート基準のため):
 
 ```bash
+python/venv/bin/python python/syncStockList.py      # JPX の上場銘柄一覧と同期 (新規上場/上場廃止/社名・市場変更)
 python/venv/bin/python python/fetchStockPrices.py   # yfinance で株価・配当利回りを取得し stocks を更新
 python/venv/bin/python python/calculateScores.py    # financial_history からスコアを算出し scores を upsert
 ```
 
+### 銘柄リストの同期 (syncStockList.py)
+
+[JPX が公開する上場銘柄一覧](https://www.jpx.co.jp/markets/statistics-equities/misc/tvdivq0000001vg2-att/data_j.xls) (月次更新の Excel) と DB を突き合わせ、
+新規上場の追加・上場廃止の `is_excluded = 1` 設定・社名/市場区分/業種の変更反映を行う。
+
+- 対象は**東証の内国株式の普通株のみ** (ETF・REIT・PRO Market・外国株、および5桁コードの優先株・社債型種類株式は除外)
+- 名証・札証・福証の銘柄は JPX データに含まれないため**同期対象外** (差分判定も東証銘柄に限定している)
+- `--dry-run` で DB を更新せず差分だけ確認できる (admin ページの「確認のみ」チェックボックスも同じ)
+- 上場廃止銘柄は**削除せず対象外フラグを立てる**だけなので、過去の決算データやスコアは残る
+
+- yfinance のティッカーは **市場に応じてサフィックスを切り替える** (`MARKET_SUFFIXES` in [fetchStockPrices.py](../python/fetchStockPrices.py))。
+  東証 `.T` / 名証 `.N` / 札証 `.S` / 福証 `.F` (市場が未設定・不明なら `.T`)。
+  なお名証銘柄は現時点で `.N` でもデータを取得できない (Yahoo Finance 側の未対応と見られる) が、
+  売買可能な銘柄のため対象外フラグは立てず、取得失敗として扱う
 - `fetchStockPrices.py --updated-before YYYY-MM-DD`: その日より前に更新された銘柄だけを対象にする。
   途中で中断 (PCスリープ等) した更新を残りの銘柄だけで再開できる。
-  admin ページの「未更新の銘柄のみ」チェックボックスからも同じ機能を使える (`?updatedBefore=` → `--updated-before`)
+  admin ページの「未更新の銘柄のみ」チェックボックスからも同じ機能を使える
+  (`?resume=1` を送り、サーバー側で「今日」に解決して `--updated-before` に変換する。
+  `?updatedBefore=YYYY-MM-DD` で日付を明示指定することも可能)
 - 長時間の実行はスリープ抑止付きで行うとよい: `caffeinate -i python/venv/bin/python python/fetchStockPrices.py`
 
 - DB パスは `SQLITE_DB_PATH` または `<リポジトリ>/data/haito-biyori.db` (スクリプトの位置から解決)
