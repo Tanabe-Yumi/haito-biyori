@@ -169,6 +169,7 @@ npm run db:codegen   # 実DBから src/types/db.ts を再生成
 | `GET /api/stocks` | 一覧 (フィルタ・ページネーション対応) |
 | `GET /api/stocks/export` | CSV エクスポート用の全件取得 (1000件ずつ内部ページング) |
 | `GET /api/markets` / `GET /api/industries` | マスタ取得 |
+| `GET /api/exec/sync-stocks` | 銘柄リスト同期バッチの実行 (admin用・ストリーミング) |
 | `GET /api/exec/fetch-stocks` | 株価取得バッチの実行 (admin用・ストリーミング) |
 | `GET /api/exec/calc-scores` | スコア計算バッチの実行 (admin用・ストリーミング) |
 
@@ -191,9 +192,20 @@ npx tsx scripts/update_operating_profit.ts   # data/operating_profit.csv → 営
 リポジトリルートから実行する (ログパスがルート基準のため):
 
 ```bash
+python/venv/bin/python python/syncStockList.py      # JPX の上場銘柄一覧と同期 (新規上場/上場廃止/社名・市場変更)
 python/venv/bin/python python/fetchStockPrices.py   # yfinance で株価・配当利回りを取得し stocks を更新
 python/venv/bin/python python/calculateScores.py    # financial_history からスコアを算出し scores を upsert
 ```
+
+### 銘柄リストの同期 (syncStockList.py)
+
+[JPX が公開する上場銘柄一覧](https://www.jpx.co.jp/markets/statistics-equities/misc/tvdivq0000001vg2-att/data_j.xls) (月次更新の Excel) と DB を突き合わせ、
+新規上場の追加・上場廃止の `is_excluded = 1` 設定・社名/市場区分/業種の変更反映を行う。
+
+- 対象は**東証の内国株式の普通株のみ** (ETF・REIT・PRO Market・外国株、および5桁コードの優先株・社債型種類株式は除外)
+- 名証・札証・福証の銘柄は JPX データに含まれないため**同期対象外** (差分判定も東証銘柄に限定している)
+- `--dry-run` で DB を更新せず差分だけ確認できる (admin ページの「確認のみ」チェックボックスも同じ)
+- 上場廃止銘柄は**削除せず対象外フラグを立てる**だけなので、過去の決算データやスコアは残る
 
 - yfinance のティッカーは **市場に応じてサフィックスを切り替える** (`MARKET_SUFFIXES` in [fetchStockPrices.py](../python/fetchStockPrices.py))。
   東証 `.T` / 名証 `.N` / 札証 `.S` / 福証 `.F` (市場が未設定・不明なら `.T`)。
@@ -201,7 +213,9 @@ python/venv/bin/python python/calculateScores.py    # financial_history から�
   売買可能な銘柄のため対象外フラグは立てず、取得失敗として扱う
 - `fetchStockPrices.py --updated-before YYYY-MM-DD`: その日より前に更新された銘柄だけを対象にする。
   途中で中断 (PCスリープ等) した更新を残りの銘柄だけで再開できる。
-  admin ページの「未更新の銘柄のみ」チェックボックスからも同じ機能を使える (`?updatedBefore=` → `--updated-before`)
+  admin ページの「未更新の銘柄のみ」チェックボックスからも同じ機能を使える
+  (`?resume=1` を送り、サーバー側で「今日」に解決して `--updated-before` に変換する。
+  `?updatedBefore=YYYY-MM-DD` で日付を明示指定することも可能)
 - 長時間の実行はスリープ抑止付きで行うとよい: `caffeinate -i python/venv/bin/python python/fetchStockPrices.py`
 
 - DB パスは `SQLITE_DB_PATH` または `<リポジトリ>/data/haito-biyori.db` (スクリプトの位置から解決)

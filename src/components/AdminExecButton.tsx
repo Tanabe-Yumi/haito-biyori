@@ -29,14 +29,25 @@ const icons = {
   refresh: RefreshCwIcon,
 };
 
+// 実行時に選べるオプション (チェックするとクエリパラメータとして API に渡される)
+// サーバーコンポーネントから渡せるよう、値は文字列のみ (関数は不可)
+export interface AdminExecOption {
+  // クエリパラメータ名
+  key: string;
+  // チェックボックスのラベル
+  label: string;
+  // チェック時に送る値
+  value: string;
+}
+
 export interface AdminExecButtonProps {
-  action: "fetch-stocks" | "calc-scores";
+  action: "fetch-stocks" | "calc-scores" | "sync-stocks";
   title: string;
   icon: keyof typeof icons;
   // 注意書き (カード左側に表示)
   notice?: string | null;
-  // 「未更新の銘柄のみ」オプションを表示するか
-  withResumeOption?: boolean;
+  // 実行オプション (チェックボックスとして表示される)
+  options?: AdminExecOption[];
 }
 
 const AdminExecButton = ({
@@ -44,7 +55,7 @@ const AdminExecButton = ({
   title,
   icon,
   notice = null,
-  withResumeOption = false,
+  options = [],
 }: AdminExecButtonProps) => {
   const endpoint = "/api/exec/" + action;
   const Icon = icons[icon];
@@ -52,8 +63,20 @@ const AdminExecButton = ({
   const [logs, setLogs] = useState<string[]>([]);
   const [statusMessage, setStatusMessage] = useState("準備中...");
   const [isExecuting, setIsExecuting] = useState(false);
-  // 未更新の銘柄のみを対象にするか
-  const [resumeOnly, setResumeOnly] = useState(false);
+  // チェックされているオプションの key
+  const [checkedOptions, setCheckedOptions] = useState<Set<string>>(new Set());
+
+  const toggleOption = (key: string, checked: boolean) => {
+    setCheckedOptions((prev) => {
+      const next = new Set(prev);
+      if (checked) {
+        next.add(key);
+      } else {
+        next.delete(key);
+      }
+      return next;
+    });
+  };
 
   const resetStates = () => {
     setProgress(0);
@@ -65,13 +88,14 @@ const AdminExecButton = ({
     resetStates();
     setIsExecuting(true);
 
-    // 「未更新の銘柄のみ」の場合、今日 (UTC) より前に更新された銘柄だけを対象にする
-    // (updated_at は UTC で保存されているため、日付も UTC 基準で渡す)
-    const today = new Date().toISOString().slice(0, 10);
-    const url =
-      withResumeOption && resumeOnly
-        ? `${endpoint}?updatedBefore=${today}`
-        : endpoint;
+    // チェックされたオプションをクエリパラメータに変換
+    const params = new URLSearchParams();
+    for (const option of options) {
+      if (checkedOptions.has(option.key)) {
+        params.set(option.key, option.value);
+      }
+    }
+    const url = params.size !== 0 ? `${endpoint}?${params}` : endpoint;
 
     const decoder = new TextDecoder();
     const res = await fetch(url);
@@ -164,16 +188,21 @@ const AdminExecButton = ({
             {notice}
           </h5>
         )}
-        {/* 未更新の銘柄だけを対象にするオプション (実行前に選ぶ) */}
-        {withResumeOption && (
-          <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer">
+        {/* 実行オプション (実行前に選ぶ) */}
+        {options.map((option) => (
+          <label
+            key={option.key}
+            className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer"
+          >
             <Checkbox
-              checked={resumeOnly}
-              onCheckedChange={(checked) => setResumeOnly(checked === true)}
+              checked={checkedOptions.has(option.key)}
+              onCheckedChange={(checked) =>
+                toggleOption(option.key, checked === true)
+              }
             />
-            未更新の銘柄のみ (今日更新済みの銘柄をスキップ)
+            {option.label}
           </label>
-        )}
+        ))}
       </div>
 
       {/* 右側: 実行ボタン */}

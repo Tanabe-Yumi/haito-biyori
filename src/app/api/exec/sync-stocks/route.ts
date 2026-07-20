@@ -1,17 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import {
-  createPythonStreamHandler,
-  resolveUpdatedBeforeArgs,
-  sseResponse,
-} from "@/lib/python-stream";
+import { createPythonStreamHandler, sseResponse } from "@/lib/python-stream";
 
-const handler = createPythonStreamHandler("calculateScores.py");
+const handler = createPythonStreamHandler("syncStockList.py");
 
 // python プロセス実行
-// ?resume=1 または ?updatedBefore=YYYY-MM-DD:
-// スコアが未計算、またはその日より前に計算された銘柄だけを対象にする
+// ?dryRun=1: DB を更新せず、差分の確認だけを行う
 export async function GET(request: NextRequest) {
-  const extraArgs = resolveUpdatedBeforeArgs(request.nextUrl.searchParams);
+  const dryRun = request.nextUrl.searchParams.get("dryRun");
+  const extraArgs = dryRun === "1" ? ["--dry-run"] : [];
+
   return sseResponse(handler.createStream(extraArgs));
 }
 
