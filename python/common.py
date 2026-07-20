@@ -139,10 +139,11 @@ def fetch_stocks_from_db(conn, updated_before=None):
     """
     try:
         # is_excluded = 1 (上場廃止などの対象外銘柄) は取得しない
+        # market は yfinance のティッカーサフィックス判定に使う
         if updated_before:
             rows = conn.execute(
                 """
-                select code, name from stocks
+                select code, name, market from stocks
                 where is_excluded = 0 and date(updated_at) < ?
                 order by code
                 """,
@@ -150,7 +151,11 @@ def fetch_stocks_from_db(conn, updated_before=None):
             ).fetchall()
         else:
             rows = conn.execute(
-                "select code, name from stocks where is_excluded = 0 order by code"
+                """
+                select code, name, market from stocks
+                where is_excluded = 0
+                order by code
+                """
             ).fetchall()
         return [dict(row) for row in rows]
     except Exception as e:

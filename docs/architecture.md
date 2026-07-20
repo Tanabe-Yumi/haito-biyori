@@ -195,6 +195,10 @@ python/venv/bin/python python/fetchStockPrices.py   # yfinance で株価・配�
 python/venv/bin/python python/calculateScores.py    # financial_history からスコアを算出し scores を upsert
 ```
 
+- yfinance のティッカーは **市場に応じてサフィックスを切り替える** (`MARKET_SUFFIXES` in [fetchStockPrices.py](../python/fetchStockPrices.py))。
+  東証 `.T` / 名証 `.N` / 札証 `.S` / 福証 `.F` (市場が未設定・不明なら `.T`)。
+  なお名証銘柄は現時点で `.N` でもデータを取得できない (Yahoo Finance 側の未対応と見られる) が、
+  売買可能な銘柄のため対象外フラグは立てず、取得失敗として扱う
 - `fetchStockPrices.py --updated-before YYYY-MM-DD`: その日より前に更新された銘柄だけを対象にする。
   途中で中断 (PCスリープ等) した更新を残りの銘柄だけで再開できる。
   admin ページの「未更新の銘柄のみ」チェックボックスからも同じ機能を使える (`?updatedBefore=` → `--updated-before`)
