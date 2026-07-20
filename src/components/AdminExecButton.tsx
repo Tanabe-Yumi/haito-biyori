@@ -79,50 +79,68 @@ const AdminExecButton = ({
     const reader = res.body?.getReader();
     if (!reader) return;
 
+    // 受信バッファ
+    // 1チャンクに複数イベントが詰まる / イベントがチャンク境界で分断されることがあるため、
+    // バッファに溜めて、完成したイベント (\n\n 区切り) だけを処理する
+    let buffer = "";
+
+    // 1イベント分の JSON を処理する
+    const handleEvent = (event: string) => {
+      // SSE のルール (data: プレフィックス) を削除
+      const jsonString = event.replace(/^data: /, "").trim();
+      if (!jsonString) {
+        return;
+      }
+
+      // JSON からデータを取り出す
+      try {
+        const dataObj = JSON.parse(jsonString);
+        console.log(dataObj);
+
+        switch (dataObj.type) {
+          // ダイアログタイトルの下に表示
+          case "status":
+            setStatusMessage(dataObj.message);
+            break;
+          // 進捗。ダイアログタイトルの下に表示
+          case "progress":
+            setStatusMessage(
+              `処理中(${dataObj.current} / ${dataObj.total}): ${dataObj.code} ${dataObj.name}`,
+            );
+            setProgress((dataObj.current / dataObj.total) * 100);
+            break;
+          // プログレスバー下のスクロールエリアに表示
+          case "log":
+            setLogs((prev) => [dataObj.message, ...prev]);
+            break;
+        }
+      } catch {
+        console.error("パース失敗: ", jsonString);
+      }
+    };
+
     while (true) {
       // 次のデータが届くまで待機し、届いたら値を取り出す
       const { done, value } = await reader.read();
 
       // データストリーム完了時
       if (done) {
+        // バッファに残った最後のイベントを処理
+        handleEvent(buffer);
         console.log("DONE");
         setIsExecuting(false);
         break;
       }
 
-      // データの加工
       // バイナリをテキストに変換
-      const chunk = decoder.decode(value);
+      // stream: true でマルチバイト文字のチャンク境界の分断に対応
+      buffer += decoder.decode(value, { stream: true });
 
-      // SSE のルールを削除
-      const jsonString = chunk.replace(/^data: /, "").trim();
-
-      // JSON からデータを取り出す
-      if (jsonString) {
-        try {
-          const dataObj = JSON.parse(jsonString);
-          console.log(dataObj);
-
-          switch (dataObj.type) {
-            // ダイアログタイトルの下に表示
-            case "status":
-              setStatusMessage(dataObj.message);
-              break;
-            // 進捗。ダイアログタイトルの下に表示
-            case "progress":
-              setStatusMessage(
-                `処理中(${dataObj.current} / ${dataObj.total}): ${dataObj.code} ${dataObj.name}`,
-              );
-              setProgress((dataObj.current / dataObj.total) * 100);
-              break;
-            // プログレスバー下のスクロールエリアに表示
-            case "log":
-              setLogs((prev) => [dataObj.message, ...prev]);
-              break;
-          }
-        } catch (e) {
-          console.error("パース失敗: ", jsonString);
-        }
+      // 完成したイベントだけを処理する (末尾の要素は未完の可能性があるためバッファに残す)
+      const events = buffer.split("\n\n");
+      buffer = events.pop() ?? "";
+      for (const event of events) {
+        handleEvent(event);
       }
     }
   };
