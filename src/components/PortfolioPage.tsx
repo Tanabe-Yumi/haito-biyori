@@ -36,7 +36,11 @@ import {
   notifyPortfolioChanged,
   usePortfolioSyncEffect,
 } from "@/hooks/use-portfolio-sync";
-import { annualDividend, purchaseAmount } from "@/lib/portfolio";
+import {
+  annualDividend,
+  purchaseAmount,
+  summarizePortfolio,
+} from "@/lib/portfolio";
 
 // 円表示のフォーマッタ
 const yen = new Intl.NumberFormat("ja-JP", {
@@ -104,20 +108,13 @@ export const PortfolioPage = () => {
     }
   };
 
-  // サマリー
-  const totalAmount = stocks.reduce(
-    (sum, s) => sum + (purchaseAmount(s) ?? 0),
-    0,
-  );
-  const totalDividend = stocks.reduce(
-    (sum, s) => sum + (annualDividend(s) ?? 0),
-    0,
-  );
-  const portfolioYield =
-    totalAmount !== 0 ? (totalDividend / totalAmount) * 100 : null;
-  const industryCount = new Set(
-    stocks.map((s) => s.industry).filter((i) => i != null),
-  ).size;
+  // サマリー (CSV出力と同じ集計を共有する)
+  const {
+    industryCount,
+    totalAmount,
+    totalDividend,
+    portfolioYield,
+  } = summarizePortfolio(stocks);
 
   // 表示中のポートフォリオを CSV でダウンロード
   const handleDownloadCsv = () => {

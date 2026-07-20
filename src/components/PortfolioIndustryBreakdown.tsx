@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { breakdownByIndustry } from "@/lib/portfolio";
 import { PortfolioStock } from "@/types/portfolio";
 import { INDUSTRY_CONCENTRATION_WARNING_RATIO } from "@/constants/portfolio";
 
@@ -46,32 +47,11 @@ export function PortfolioIndustryBreakdown({
     });
   };
 
-  // 業種ごとに購入金額を集計 (株価未取得の銘柄は除外)
-  const amounts = new Map<string, number>();
-  for (const stock of stocks) {
-    if (stock.price == null || stock.shares === 0) {
-      continue;
-    }
-    const industry = stock.industry ?? "未分類";
-    amounts.set(
-      industry,
-      (amounts.get(industry) ?? 0) + stock.price * stock.shares,
-    );
-  }
-
-  const totalAmount = [...amounts.values()].reduce((sum, v) => sum + v, 0);
-  if (totalAmount === 0) {
+  // 業種ごとの内訳 (構成比の降順。CSV出力と同じ集計を共有する)
+  const industries = breakdownByIndustry(stocks);
+  if (industries.length === 0) {
     return null;
   }
-
-  // 構成比の降順に並べる
-  const industries = [...amounts.entries()]
-    .map(([name, amount]) => ({
-      name,
-      amount,
-      ratio: (amount / totalAmount) * 100,
-    }))
-    .sort((a, b) => b.amount - a.amount);
 
   // 偏り警告 (しきい値を超える業種)
   const concentrated = industries.filter(
