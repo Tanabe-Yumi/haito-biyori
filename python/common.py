@@ -151,3 +151,27 @@ def fetch_stocks_from_db(conn, updated_before=None):
     except Exception as e:
         logger.warning(f"銘柄リスト取得エラー: {e}")
     return []
+
+
+@log_call
+def fetch_stocks_with_stale_scores(conn, updated_before):
+    """スコアが古い銘柄リストを SQLite から取得
+
+    スコア未計算、または指定日 "YYYY-MM-DD" より前にスコア計算された銘柄を返す
+    (中断したスコア計算を残りの銘柄だけで再開する用)
+    """
+    try:
+        rows = conn.execute(
+            """
+            select stocks.code, stocks.name
+            from stocks
+            left join scores on scores.code = stocks.code
+            where scores.code is null or date(scores.updated_at) < ?
+            order by stocks.code
+            """,
+            (updated_before,),
+        ).fetchall()
+        return [dict(row) for row in rows]
+    except Exception as e:
+        logger.warning(f"銘柄リスト取得エラー: {e}")
+    return []

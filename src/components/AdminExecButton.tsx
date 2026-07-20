@@ -1,7 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { MinusCircleIcon, RefreshCwIcon, XCircleIcon } from "lucide-react";
+import {
+  AlertTriangleIcon,
+  MinusCircleIcon,
+  RefreshCwIcon,
+  XCircleIcon,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -28,7 +33,9 @@ export interface AdminExecButtonProps {
   action: "fetch-stocks" | "calc-scores";
   title: string;
   icon: keyof typeof icons;
-  // 「未更新の銘柄のみ」オプションを表示するか (株価更新用)
+  // 注意書き (カード左側に表示)
+  notice?: string | null;
+  // 「未更新の銘柄のみ」オプションを表示するか
   withResumeOption?: boolean;
 }
 
@@ -36,6 +43,7 @@ const AdminExecButton = ({
   action,
   title,
   icon,
+  notice = null,
   withResumeOption = false,
 }: AdminExecButtonProps) => {
   const endpoint = "/api/exec/" + action;
@@ -129,17 +137,28 @@ const AdminExecButton = ({
   };
 
   return (
-    <div className="flex flex-col items-start sm:items-end gap-2">
-      {/* 未更新の銘柄だけを対象にするオプション (実行前に選ぶ) */}
-      {withResumeOption && (
-        <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer">
-          <Checkbox
-            checked={resumeOnly}
-            onCheckedChange={(checked) => setResumeOnly(checked === true)}
-          />
-          未更新の銘柄のみ (今日更新済みの銘柄をスキップ)
-        </label>
-      )}
+    <div className="flex w-full flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      {/* 左側: 注意書きとオプション */}
+      <div className="flex flex-col items-start gap-3">
+        {notice && (
+          <h5 className="px-4 py-2 font-semibold tracking-tight flex items-center gap-1 text-amber-600 dark:text-amber-400 bg-yellow-100/80 dark:bg-yellow-900/80 rounded-md">
+            <AlertTriangleIcon className="w-4 h-4" />
+            {notice}
+          </h5>
+        )}
+        {/* 未更新の銘柄だけを対象にするオプション (実行前に選ぶ) */}
+        {withResumeOption && (
+          <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer">
+            <Checkbox
+              checked={resumeOnly}
+              onCheckedChange={(checked) => setResumeOnly(checked === true)}
+            />
+            未更新の銘柄のみ (今日更新済みの銘柄をスキップ)
+          </label>
+        )}
+      </div>
+
+      {/* 右側: 実行ボタン */}
     <AlertDialog>
       <AlertDialogTrigger asChild>
         <Button
