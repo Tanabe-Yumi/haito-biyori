@@ -138,14 +138,19 @@ def fetch_stocks_from_db(conn, updated_before=None):
                     (中断した更新処理を残りの銘柄だけで再開する用)
     """
     try:
+        # is_excluded = 1 (上場廃止などの対象外銘柄) は取得しない
         if updated_before:
             rows = conn.execute(
-                "select code, name from stocks where date(updated_at) < ? order by code",
+                """
+                select code, name from stocks
+                where is_excluded = 0 and date(updated_at) < ?
+                order by code
+                """,
                 (updated_before,),
             ).fetchall()
         else:
             rows = conn.execute(
-                "select code, name from stocks order by code"
+                "select code, name from stocks where is_excluded = 0 order by code"
             ).fetchall()
         return [dict(row) for row in rows]
     except Exception as e:
@@ -161,12 +166,14 @@ def fetch_stocks_with_stale_scores(conn, updated_before):
     (中断したスコア計算を残りの銘柄だけで再開する用)
     """
     try:
+        # is_excluded = 1 (上場廃止などの対象外銘柄) は取得しない
         rows = conn.execute(
             """
             select stocks.code, stocks.name
             from stocks
             left join scores on scores.code = stocks.code
-            where scores.code is null or date(scores.updated_at) < ?
+            where stocks.is_excluded = 0
+              and (scores.code is null or date(scores.updated_at) < ?)
             order by stocks.code
             """,
             (updated_before,),

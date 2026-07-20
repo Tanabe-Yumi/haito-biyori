@@ -36,6 +36,12 @@ export interface Markets {
   name: string;
 }
 
+export interface PortfolioItems {
+  code: string | null;
+  created_at: Generated<string>;
+  shares: Generated<number>;
+}
+
 export interface Scores {
   cash: Generated<number | null>;
   code: string;
@@ -55,6 +61,7 @@ export interface Stocks {
   created_at: Generated<string>;
   dividend_yield: number | null;
   industry: number | null;
+  is_excluded: Generated<number>;
   market: number | null;
   name: string;
   price: number | null;
@@ -100,6 +107,7 @@ export interface DB {
   financial_history: FinancialHistory;
   industries: Industries;
   markets: Markets;
+  portfolio_items: PortfolioItems;
   scores: Scores;
   stocks: Stocks;
   stocks_with_scores: StocksWithScores;

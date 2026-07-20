@@ -89,13 +89,15 @@ flowchart LR
 | 種類 | 名前 | 内容 |
 |---|---|---|
 | テーブル | `markets` / `industries` | 市場・業種マスタ (スキーマ内でシード投入) |
-| テーブル | `stocks` | 銘柄 (コード・名前・株価・配当利回り) |
+| テーブル | `stocks` | 銘柄 (コード・名前・株価・配当利回り)。`is_excluded = 1` で対象外 (上場廃止など。削除はしない方針) |
 | テーブル | `financial_history` | 決算データ (銘柄×年×月でユニーク) |
 | テーブル | `scores` | スコア (8項目 + 合計。銘柄ごとに1行) |
 | ビュー | `stocks_with_total_score` | 一覧用 (stocks + マスタ + 合計スコア) |
 | ビュー | `stocks_with_scores` | 詳細・CSV用 (stocks + マスタ + 全スコア) |
 
 - ビューは `inner join scores` のため、**scores 行がない銘柄は表示されない** (仕様)
+- ビューは `is_excluded = 0` で絞るため、**対象外フラグの銘柄も表示されない**。Python の銘柄取得 (`fetch_stocks_from_db` など) も同様に除外する
+- stocks の `updated_at` 自動更新トリガーは **price / dividend_yield の更新時のみ発火** (is_excluded などの管理用カラムの変更では株価更新日時を変えない)
 - `updated_at` はトリガーで自動更新
 
 ### 型定義の自動生成 (kysely-codegen)
