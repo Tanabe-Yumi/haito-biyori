@@ -103,7 +103,8 @@ def calculate_cagr(series):
     end = clean.iloc[-1]
     n = len(clean) - 1
 
-    if start <= 0:
+    # 端点が正でないと CAGR は定義できない (負数の分数乗は NaN になる)
+    if start <= 0 or end <= 0:
         return None
 
     return (end / start) ** (1 / n) - 1
